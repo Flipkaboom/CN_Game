@@ -1,14 +1,19 @@
 import queue
 from collections import deque
 
+#This fixes all the circular import issues
+class Connection:
+    pass
+
 from GameNetworkProtocol import globals as gl
 from GameNetworkProtocol import helpers as hlp
+from GameNetworkProtocol import operations as ops
 #operations import at bottom of file
 
 import threading
 
-PORT = 42069
 SEQ_INFO_LEN = 5
+CONN_TIMEOUT = 5
 
 class Connection:
     #TODO initialize
@@ -31,9 +36,19 @@ class Connection:
 
     def __init__(self, address:tuple):
         self.address = hlp.sanitize_address(address)
+
         self.op_send_list = deque[ops.Operation]()
+
+        #FIXME Apparently deque is much faster than queue so switch that if it runs like shit
         self.op_recv_list = queue.Queue[ops.Operation]()
         self.net_op_recv_list = queue.Queue[ops.Operation]()
+
+        self.data_recv_queue = queue.Queue[bytes]()
+
+        self.data_recv_thread = threading.Thread(target=data_recv_thread, args=(self,))
+        self.data_recv_thread.daemon = True
+        self.data_recv_thread.start()
+
         self.send_list_lock = threading.Lock()
 
     def encode_ops(self) -> bytes:
@@ -112,24 +127,48 @@ class Connection:
         with self.send_list_lock:
             self.op_send_list.append(op)
 
+    def handle_all(self):
+        while not self.op_recv_list.empty():
+            self.op_recv_list.get().handle(self)
+
     def send_new_outgoing(self):
         gl.sock.sendto(self.new_outgoing(), self.address)
 
     def send_new_ack(self):
         gl.sock.sendto(self.new_outgoing_ack(), self.address)
 
+    def recv_packet(self, data):
+        self.data_recv_queue.put(data)
+
+    def close(self):
+        print('Closing connection with: ', self.address)
+        #FIXME clear queue first? otherwise all previous ops will be handled before thread closes :(
+        self.recv_packet(None)
+        del gl.connections[self.address]
+        pass
+
     #incoming data      safe
     #incoming ack       affects sender list and seq_num
     #outgoing data      uses sender_list and seq_num
     #outgoing ack       safe
+
+def data_recv_thread(c:Connection):
+    while True:
+        try:
+            data = c.data_recv_queue.get(timeout=CONN_TIMEOUT)
+            if data is None:
+                return
+            c.handle_incoming(data)
+        except queue.Empty:
+            c.close()
+            return
 
 def connect_to(address:tuple, conn_id:int, player_name:str) -> Connection:
     address = hlp.sanitize_address(address)
     if address in gl.connections:
         raise Exception("Address already in connections list")
 
-    print('Connecting to:')
-    print( address)
+    print('Connecting to: ', address)
 
     self = Connection(address)
     #FIXME mutex on this list???
@@ -141,5 +180,3 @@ def connect_to(address:tuple, conn_id:int, player_name:str) -> Connection:
     self.add_op(ops.PlayerInfo.my_info())
     self.send_new_outgoing()
     return self
-
-from GameNetworkProtocol import operations as ops

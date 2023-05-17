@@ -1,14 +1,11 @@
 from abc import ABC, abstractmethod
 
-from GameNetworkProtocol import globals as gl
 from GameNetworkProtocol import connection as conn
+from GameNetworkProtocol import globals as gl
 
 op_num_counter = 0
 
 class Operation(ABC):
-    #FIXME still needed?
-    time:int = 0 #TODO initialize or no?
-
     network_op:bool = False
 
     def __init_subclass__(cls, **kwargs):
@@ -188,3 +185,23 @@ class PlayerInfo(Operation):
         conn_id = int.from_bytes(data[13:17], 'big')
         name = data[17:length].decode()
         return cls(ip, port, conn_id, name)
+
+class Test(Operation):
+    length = 5
+
+    def __init__(self, debug_num:int):
+        self.debug_num = debug_num
+
+    def encode(self) -> bytes:
+        res = bytes()
+        res += self.num.to_bytes(1, 'big')
+        res += self.debug_num.to_bytes(4, 'big')
+        return res
+
+    @classmethod
+    def from_data(cls, data:bytes):
+        debug_num = int.from_bytes(data[1:5], 'big')
+        return cls(debug_num)
+
+    def handle(self, parent_conn: conn.Connection):
+        print('Test: ' + str(self.debug_num))

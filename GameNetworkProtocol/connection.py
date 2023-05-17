@@ -139,6 +139,7 @@ class Connection:
     def recv_packet(self, data):
         if data is None:
             self.data_recv_queue.put(data)
+        #FIXME double crc check
         elif crc.valid_crc(data):
             self.data_recv_queue.put(crc.remove_crc(data))
 

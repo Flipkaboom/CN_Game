@@ -1,6 +1,7 @@
 import socket
 from GameNetworkProtocol import globals as gl
 from GameNetworkProtocol import connection as conn
+from GameNetworkProtocol import crc
 
 def global_recv_thread():
     gl.sock.settimeout(1)
@@ -8,6 +9,11 @@ def global_recv_thread():
         try:
             data, conn_info = gl.sock.recvfrom(gl.MAX_PACKET_SIZE)
         except socket.timeout:
+            continue
+        except ConnectionResetError:
+            continue
+
+        if not crc.valid_crc(data):
             continue
 
         if not (conn_info in gl.connections):

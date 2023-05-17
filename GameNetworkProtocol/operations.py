@@ -142,7 +142,6 @@ class PlayerInfo(Operation):
                         op = PlayerInfo(c.address[0], c.address[1], c.conn_id, c.player_name)
                         gl.connections[conn_info].add_op(op)
                 gl.connections[conn_info].knows_peer = True
-                #FIXME should this send here? Hopefully
                 gl.connections[conn_info].send_new_outgoing()
         #Else this is a peer sending us info about a player we don't know anything about -> send conn request
         else:

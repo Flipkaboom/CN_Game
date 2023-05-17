@@ -1,4 +1,3 @@
-#FIXME inefficient?
 def sanitize_ip(ip:str):
     if ip == '' or ip == '0.0.0.0' or ip == 'localhost':
         return '127.0.0.1'

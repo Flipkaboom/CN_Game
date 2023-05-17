@@ -12,7 +12,7 @@ def global_recv_thread():
 
         if not (conn_info in gl.connections):
             print('Received connection from: ', conn_info)
-            #FIXME mutex with connect_to (and other that add to connection list)
+            #FIXME mutex with connect_to (and others that add to connection list)
             gl.connections[conn_info] = conn.Connection(conn_info)
 
         gl.connections[conn_info].recv_packet(data)

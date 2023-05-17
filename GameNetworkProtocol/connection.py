@@ -8,6 +8,7 @@ class Connection:
 from GameNetworkProtocol import globals as gl
 from GameNetworkProtocol import helpers as hlp
 from GameNetworkProtocol import operations as ops
+from GameNetworkProtocol import crc
 #operations import at bottom of file
 
 import threading
@@ -16,11 +17,9 @@ SEQ_INFO_LEN = 5
 CONN_TIMEOUT = 5
 
 class Connection:
-    #TODO initialize
     player_name:str
     conn_id:int
 
-    #TODO initialize
     address:(str, int)
 
     knows_peer:bool = False
@@ -132,13 +131,16 @@ class Connection:
             self.op_recv_list.get().handle(self)
 
     def send_new_outgoing(self):
-        gl.sock.sendto(self.new_outgoing(), self.address)
+        gl.sock.sendto(crc.add_crc(self.new_outgoing()), self.address)
 
     def send_new_ack(self):
-        gl.sock.sendto(self.new_outgoing_ack(), self.address)
+        gl.sock.sendto(crc.add_crc(self.new_outgoing_ack()), self.address)
 
     def recv_packet(self, data):
-        self.data_recv_queue.put(data)
+        if data is None:
+            self.data_recv_queue.put(data)
+        elif crc.valid_crc(data):
+            self.data_recv_queue.put(crc.remove_crc(data))
 
     def close(self):
         print('Closing connection with: ', self.address)
@@ -175,7 +177,6 @@ def connect_to(address:tuple, conn_id:int, player_name:str) -> Connection:
     gl.connections[address] = self
     self.conn_id = conn_id
     self.player_name = player_name
-    #FIXME ?
     self.knows_peer = True
     self.add_op(ops.PlayerInfo.my_info())
     self.send_new_outgoing()

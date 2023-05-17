@@ -1,14 +1,19 @@
 import socket
+import threading
 
 from GameNetworkProtocol import connection as conn
 
 MAX_PACKET_SIZE = 2048
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('', 0))
+sock:socket.socket
 
-#FIXME init properly
-player_name = 'Flip'
-conn_id = 1234
+player_name = 'UNSET'
+conn_id = -1
+
+kill_threads_flag = False
+ready_for_init = True
+
+t_recv:threading.Thread
+t_alive:threading.Thread
 
 connections:dict[tuple, conn.Connection] = dict[tuple, conn.Connection]()

@@ -16,6 +16,8 @@ import threading
 SEQ_INFO_LEN = 5
 CONN_TIMEOUT = 5
 
+
+# noinspection PyRedeclaration
 class Connection:
     player_name:str
     conn_id:int
@@ -59,6 +61,7 @@ class Connection:
         return res
 
     def decode_ops(self, data:bytes, seq_num:int):
+        #TODO some sort of handling for malformed packets (discard) (need some detection in the Operation.from_num)
         i = 0
         seq_num_counter = seq_num
         while i < len(data):
@@ -66,7 +69,7 @@ class Connection:
             op = ops.Operation.from_num(num, data[i:])
 
             if seq_num_counter >= self.ack_num:
-                if op.network_op:
+                if op.priority_op:
                     self.net_op_recv_list.put(op)
                 else:
                     self.op_recv_list.put(op)
@@ -138,6 +141,7 @@ class Connection:
 
     def recv_packet(self, data):
         if data is None:
+            # noinspection PyTypeChecker
             self.data_recv_queue.put(data)
         #FIXME double crc check
         elif crc.valid_crc(data):

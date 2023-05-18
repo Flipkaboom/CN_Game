@@ -6,7 +6,7 @@ from GameNetworkProtocol import globals as gl
 op_num_counter = 0
 
 class Operation(ABC):
-    network_op:bool = False
+    priority_op:bool = False
 
     def __init_subclass__(cls, **kwargs):
         global op_num_counter
@@ -15,21 +15,38 @@ class Operation(ABC):
 
     length:int
 
-    def encode(self) -> bytes:
-        return self.num.to_bytes(self.length, 'big')
+    def encode(self):
+        return self.num.to_bytes(1, 'big')
 
     @classmethod
     def from_data(cls, data:bytes):
         return cls()
 
+    def _encode_values(self, ints:tuple[int] = (), chars:tuple[int] = ()) -> bytes:
+        res = bytes()
+        res += self.num.to_bytes(1, 'big')
+        for val in ints:
+            res += val.to_bytes(4, 'big')
+        for val in chars:
+            res += val.to_bytes(1, 'big')
+        return res
+
+    @staticmethod
+    def _decode_values(data:bytes, num_ints:int = 0, num_chars:int = 0) -> list:
+        res = list()
+        i = 1
+        for _ in range(0, num_ints * 4, 4):
+            res.append(int.from_bytes(data[i:i + 4], 'big'))
+            i += 4
+        for _ in range(0, num_chars):
+            res.append(data[i])
+            i += 1
+        return res
+
+
     @abstractmethod
     def handle(self, parent_conn:conn.Connection):
         raise NotImplementedError
-
-    # @staticmethod
-    # def length_from_num(num:int):
-    #     cls = Operation.__subclasses__()[num]
-    #     return cls.length
 
     @staticmethod
     def from_num(num:int, data:bytes = bytes()):
@@ -37,86 +54,8 @@ class Operation(ABC):
         return cls.from_data(data)
 
 
-class Pos(Operation):
-    #use init to make new instance with parameters
-    def __init__(self):
-        pass
-
-    def encode(self):
-        pass
-
-    @classmethod
-    def from_data(cls, data:bytes):
-        pass
-
-
-class Attack(Operation):
-    def __init__(self):
-        pass
-
-    def encode(self):
-        pass
-
-    @classmethod
-    def from_data(cls, data:bytes):
-        pass
-
-class Hit(Operation):
-    def __init__(self):
-        pass
-
-    def encode(self):
-        pass
-
-    @classmethod
-    def from_data(cls, data:bytes):
-        pass
-
-class BlockStart(Operation):
-    length = 1
-
-class BlockStop(Operation):
-    length = 1
-
-class Jump(Operation):
-    def __init__(self):
-        pass
-
-    def encode(self):
-        pass
-
-    @classmethod
-    def from_data(cls, data:bytes):
-        pass
-
-class DodgeStart(Operation):
-    length = 1
-
-class DodgeStop(Operation):
-    length = 1
-
-class Death(Operation):
-    length = 1
-
-class MatchReady(Operation):
-    length = 1
-
-class MatchUnready(Operation):
-    length = 1
-
-class ConnRequest(Operation):
-    def __init__(self):
-        pass
-
-    def encode(self):
-        pass
-
-    @classmethod
-    def from_data(cls, data:bytes):
-        pass
-
 class PlayerInfo(Operation):
-    network_op = True
+    priority_op = True
 
     def handle(self, parent_conn:conn.Connection):
         #If info was peer's own info, take their address from parent Connection
@@ -125,6 +64,7 @@ class PlayerInfo(Operation):
         else:
             conn_info = (self.ip, self.port)
 
+        #FIXME if ip == '127.0.0.1' replace ip with peer source ip to connect to multiple clients on same machine
         #If we have seen peer before this is a response so fill in info in connection
         if conn_info in gl.connections:
             gl.connections[conn_info].address = conn_info
@@ -192,14 +132,11 @@ class Test(Operation):
         self.debug_num = debug_num
 
     def encode(self) -> bytes:
-        res = bytes()
-        res += self.num.to_bytes(1, 'big')
-        res += self.debug_num.to_bytes(4, 'big')
-        return res
+        return self._encode_values(ints=(self.debug_num,))
 
     @classmethod
     def from_data(cls, data:bytes):
-        debug_num = int.from_bytes(data[1:5], 'big')
+        debug_num, = cls._decode_values(data, num_ints=1)
         return cls(debug_num)
 
     def handle(self, parent_conn: conn.Connection):

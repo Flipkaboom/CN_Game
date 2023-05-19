@@ -1,47 +1,65 @@
 import pygame
 
+class Renderer:
+    pass
 
-RESOLUTION_DEFAULT = (1920, 1080)
+import instance
 
-screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
+CANVAS_SIZE = (1920, 1080)
 
-canvas = pygame.Surface(RESOLUTION_DEFAULT)
 
-hor_offset = 0
-vert_offset = 0
-scale_factor = 1
+# noinspection PyRedeclaration
+class Renderer:
+    screen:pygame.Surface
+    canvas:pygame.Surface
 
-# def draw_scaled(surf:pygame.Rect, pos:tuple[int, int]):
-#     pos = (pos[0] + hor_offset, pos[1] + vert_offset)
-#     surf = pygame.transform.smoothscale_by(surf, scale_factor)
-#     screen.fill('blue', surf)
-#     screen.blit()
-#     screen.fill(surf.)
+    inst:instance.Instance
 
-def render_canvas():
-    screen.fill('black')
+    hor_offset = 0
+    vert_offset = 0
+    scale_factor = 1
 
-    #start testing code
-    canvas.fill('pink')
-    canvas.fill('blue', pygame.Rect((200, 100), (100, 200)))
-    #end testing code
+    def __init__(self, game_instance:instance.Instance):
+        self.screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
+        self.canvas = pygame.Surface(CANVAS_SIZE)
+        self.update_screen_size()
 
-    canvas_scaled = pygame.transform.smoothscale_by(canvas, scale_factor)
-    screen.blit(canvas_scaled, (hor_offset, vert_offset))
+        self.inst = game_instance
 
-    pygame.display.flip()
 
-def update_screen_size():
-    global hor_offset, vert_offset, scale_factor
-    hor_scale_factor = screen.get_width() / RESOLUTION_DEFAULT[0]
-    vert_scale_factor = screen.get_height() / RESOLUTION_DEFAULT[1]
-    if hor_scale_factor < vert_scale_factor:
-        scale_factor = hor_scale_factor
-        proportional_height = scale_factor * RESOLUTION_DEFAULT[1]
-        hor_offset = 0
-        vert_offset = (screen.get_height() - proportional_height) / 2
-    else:
-        scale_factor = vert_scale_factor
-        proportional_width = scale_factor * RESOLUTION_DEFAULT[0]
-        vert_offset = 0
-        hor_offset = (screen.get_width() - proportional_width) / 2
+    def render_canvas(self):
+        self.screen.fill('black')
+
+        #start testing code
+        # self.canvas.fill('pink')
+        # self.canvas.fill('blue', pygame.Rect((200, 100), (100, 200)))
+        #end testing code
+
+        self.draw_all_entities()
+
+        canvas_scaled = pygame.transform.smoothscale_by(self.canvas, self.scale_factor)
+        self.screen.blit(canvas_scaled, (self.hor_offset, self.vert_offset))
+
+        pygame.display.flip()
+
+    def draw_all_entities(self):
+        for l in instance.global_instance.state.layers.values():
+            for e in l.entities:
+                if e.visible:
+                    self.canvas.blit(e.curr_anim.sprite, e.bbox)
+                    # self.draw_entity(e)
+    # def draw_entity(self, e):
+
+    def update_screen_size(self):
+        hor_scale_factor = self.screen.get_width() / CANVAS_SIZE[0]
+        vert_scale_factor = self.screen.get_height() / CANVAS_SIZE[1]
+        if hor_scale_factor < vert_scale_factor:
+            self.scale_factor = hor_scale_factor
+            proportional_height = self.scale_factor * CANVAS_SIZE[1]
+            self.hor_offset = 0
+            self.vert_offset = (self.screen.get_height() - proportional_height) / 2
+        else:
+            self.scale_factor = vert_scale_factor
+            proportional_width = self.scale_factor * CANVAS_SIZE[0]
+            self.vert_offset = 0
+            self.hor_offset = (self.screen.get_width() - proportional_width) / 2

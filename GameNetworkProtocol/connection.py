@@ -24,6 +24,7 @@ class Connection:
 
     address:(str, int)
 
+    #FIXME make sure connection is only used after this is set to True
     knows_peer:bool = False
 
     seq_num:int = 0
@@ -96,7 +97,12 @@ class Connection:
             ack_op_count = ack_num - self.seq_num
             #FIXME is this actually better than using a list (instead of deque) and copying using [ack_op_count:]
             for i in range(0, ack_op_count):
-                self.op_send_list.popleft()
+                try:
+                    self.op_send_list.popleft()
+                except IndexError:
+                    print('Connection desync with: ', self.address)
+                    self.close()
+                    return
 
             self.seq_num = ack_num
 
@@ -134,6 +140,7 @@ class Connection:
             self.op_recv_list.get().handle(self)
 
     def send_new_outgoing(self):
+        #FIXME if no ack received resend with timeout to try to deliver within frame when packet is lost
         gl.sock.sendto(crc.add_crc(self.new_outgoing()), self.address)
 
     def send_new_ack(self):
@@ -161,6 +168,7 @@ class Connection:
 
 def data_recv_thread(c:Connection):
     while True:
+        #FIXME some sort of timeout on incoming connection (e.g. if knows_peer not true after x seconds disconnect)
         try:
             data = c.data_recv_queue.get(timeout=CONN_TIMEOUT)
             if data is None:

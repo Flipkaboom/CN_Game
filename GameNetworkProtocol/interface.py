@@ -5,7 +5,7 @@ import time
 
 from GameNetworkProtocol import connection as conn, globals as gl, receiver as rcv, operations as ops, keep_alive
 
-def initialize(name:str):
+def initialize(name:str) -> tuple:
     while not gl.ready_for_init:
         time.sleep(1)
 
@@ -27,6 +27,7 @@ def initialize(name:str):
     gl.t_alive.start()
 
     print(f'Listening on port {gl.sock.getsockname()[1]}')
+    return gl.sock.getsockname()
 
 def queue_op(op:ops.Operation):
     for c in gl.connections.values():
@@ -40,7 +41,7 @@ def handle_all():
     for c in gl.connections.values():
         c.handle_all()
 
-def connect_to_group(address:tuple):
+def join_group(address:tuple):
     if len(gl.connections) > 0:
         raise Exception("Networking already running/connected. Please restart program to retry (this exception probably restarted it for you lol)")
     else:

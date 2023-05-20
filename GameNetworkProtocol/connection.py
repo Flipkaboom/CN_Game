@@ -24,7 +24,6 @@ class Connection:
 
     address:(str, int)
 
-    #FIXME make sure connection is only used after this is set to True
     knows_peer:bool = False
 
     seq_num:int = 0
@@ -114,8 +113,6 @@ class Connection:
         else:
             self.decode_ops(data[SEQ_INFO_LEN:], seq_num)
             while not self.net_op_recv_list.empty():
-                #FIXME block receiver thread on receiving something that doesn't contain a PlayerInfo op
-                #           Can this ever actually happen??
                 op = self.net_op_recv_list.get()
                 op.handle(self)
             self.send_new_ack()
@@ -168,12 +165,17 @@ class Connection:
 
 def data_recv_thread(c:Connection):
     while True:
-        #FIXME some sort of timeout on incoming connection (e.g. if knows_peer not true after x seconds disconnect)
         try:
             data = c.data_recv_queue.get(timeout=CONN_TIMEOUT)
             if data is None:
                 return
             c.handle_incoming(data)
+
+            if not c.knows_peer:
+                print('Received bad connection request from ', c.address)
+                c.close()
+                return
+
         except queue.Empty:
             c.close()
             return

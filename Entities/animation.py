@@ -11,22 +11,29 @@ class Animation:
     offset:tuple
     frame_dur:int
     color:tuple
+    alterable:bool
 
     sprite:pygame.Surface
+    sprite_original:pygame.Surface
     sprite_list:list[pygame.Surface]
 
     frame_count:int = 0
-    curr_frame = 0
+    curr_frame:int = 0
     static:bool = False
     finished:bool = False
 
-    def __init__(self, name:str, loop:bool = False, offset:tuple = (0,0), frame_dur:int = BASE_FRAME_DUR, color:tuple = ()):
+    def __init__(self, name:str, loop:bool = False, offset:tuple = (0,0), frame_dur:int = BASE_FRAME_DUR,
+                 color:tuple = (), alterable:bool = False, sprite_list:list[pygame.Surface] = []):
         self.loop = loop
         self.offset = offset
         self.frame_dur = frame_dur
         self.color = color
+        self.alterable = alterable
 
-        self.sprite_list = loader.load_sprites(name)
+        if name == '':
+            self.sprite_list = sprite_list
+        else:
+            self.sprite_list = loader.load_sprites(name)
 
         if not self.color == ():
             self._color_sprites()
@@ -35,7 +42,17 @@ class Animation:
             raise Exception("Cannot load animation with no sprites")
         if len(self.sprite_list) == 1:
             self.static = True
-        self.sprite = self.sprite_list[0]
+
+        # print(name, self.static)
+
+        if self.alterable:
+            self.sprite_original = self.sprite_list[0]
+            self.sprite = self.sprite_original.copy()
+        else:
+            self.sprite = self.sprite_list[0]
+
+    def copy(self):
+        return Animation('', self.loop, self.offset, self.frame_dur, (), self.alterable, self.sprite_list)
 
     def _color_sprites(self):
         for greyscale_img in self.sprite_list:
@@ -55,14 +72,27 @@ class Animation:
                 else:
                     self.finished = True
                     return
-            self.sprite = self.sprite_list[self.curr_frame]
+            if self.alterable:
+                self.sprite_original = self.sprite_list[self.curr_frame]
+                self.sprite = self.sprite_original.copy()
+            else:
+                self.sprite = self.sprite_list[self.curr_frame]
 
-    def reset(self):
-        self.frame_count = 0
-        self.curr_frame = 0
-        self.static: bool = False
-        self.finished: bool = False
-        self.sprite = self.sprite_list[0]
-        return self
+    def restore_unaltered(self):
+        if self.alterable:
+            self.sprite = self.sprite_original.copy()
+
+
+    # def reset(self):
+    #     self.frame_count = 0
+    #     self.curr_frame = 0
+    #     self.finished: bool = False
+    #
+    #     if self.alterable:
+    #         self.sprite_original = self.sprite_list[self.curr_frame]
+    #         self.sprite = self.sprite_original.copy()
+    #     else:
+    #         self.sprite = self.sprite_list[0]
+    #     return self
 
 import pygame

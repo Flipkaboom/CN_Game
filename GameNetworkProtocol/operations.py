@@ -72,7 +72,7 @@ class PlayerInfo(Operation):
             gl.connections[conn_info].address = conn_info
             gl.connections[conn_info].conn_id = self.conn_id
             gl.connections[conn_info].player_name = self.name
-            #If we don't know peer, this is response to connection. Respond with all knows players' info
+            #If we don't know peer, this is response to connection. Respond with all known players' info
             if not gl.connections[conn_info].knows_peer:
                 #Own player info
                 op = PlayerInfo.my_info()

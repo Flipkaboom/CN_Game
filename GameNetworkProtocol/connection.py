@@ -226,6 +226,7 @@ def connect_to(address:tuple, conn_id:int, player_name:str) -> Connection:
     self.conn_id = conn_id
     self.player_name = player_name
     self.knows_peer = True
+    gl.events.append(('CONNECT', address))
     self.add_op(ops.PlayerInfo.my_info())
     self.send_new_outgoing()
     return self

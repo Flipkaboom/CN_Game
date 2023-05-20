@@ -22,7 +22,7 @@ class Operation(ABC):
     def from_data(cls, data:bytes):
         return cls()
 
-    def _encode_values(self, ints:tuple[int] = (), chars:tuple[int] = ()) -> bytes:
+    def _encode_values(self, ints:tuple = (), chars:tuple = ()) -> bytes:
         res = bytes()
         res += self.num.to_bytes(1, 'big')
         for val in ints:
@@ -61,10 +61,12 @@ class PlayerInfo(Operation):
         #If info was peer's own info, take their address from parent Connection
         if self.ip == '0.0.0.0':
             conn_info = parent_conn.address
+        elif self.ip == '127.0.0.1':
+        #FIXME if ip == '127.0.0.1' replace ip with peer source ip to connect to multiple clients on same machine
+            conn_info = (parent_conn.address[0], self.port)
         else:
             conn_info = (self.ip, self.port)
 
-        #FIXME if ip == '127.0.0.1' replace ip with peer source ip to connect to multiple clients on same machine
         #If we have seen peer before this is a response so fill in info in connection
         if conn_info in gl.connections:
             gl.connections[conn_info].address = conn_info
@@ -82,6 +84,7 @@ class PlayerInfo(Operation):
                         op = PlayerInfo(c.address[0], c.address[1], c.conn_id, c.player_name)
                         gl.connections[conn_info].add_op(op)
                 gl.connections[conn_info].knows_peer = True
+                gl.events.append(('CONNECT', conn_info))
                 gl.connections[conn_info].send_new_outgoing()
         #Else this is a peer sending us info about a player we don't know anything about -> send conn request
         else:

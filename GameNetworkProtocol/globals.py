@@ -1,3 +1,4 @@
+import queue
 import socket
 import threading
 
@@ -17,3 +18,5 @@ t_recv:threading.Thread
 t_alive:threading.Thread
 
 connections:dict[tuple, conn.Connection] = dict[tuple, conn.Connection]()
+
+events:list[tuple[str, object]] = list[tuple[str, object]]()

@@ -69,3 +69,8 @@ def close_all():
     gl.sock.close()
 
     gl.ready_for_init = True
+
+def get_events() -> list[tuple[str, object]]:
+    ret = gl.events
+    gl.events = list[tuple[str, object]]()
+    return ret

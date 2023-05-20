@@ -15,6 +15,7 @@ import threading
 
 SEQ_INFO_LEN = 5
 CONN_TIMEOUT = 5
+RESEND_TIMEOUT = 0.033333333
 
 
 # noinspection PyRedeclaration
@@ -25,14 +26,19 @@ class Connection:
     address:(str, int)
 
     knows_peer:bool = False
+    closed:bool = False
 
     seq_num:int = 0
     ack_num:int = 0
+
+    send_until:int = 0
 
     # op_send_list:deque[ops.Operation]
     # op_recv_list:queue.Queue[ops.Operation]
 
     send_list_lock:threading.Lock
+
+    resend_timer:threading.Timer
 
 
     def __init__(self, address:tuple):
@@ -54,9 +60,13 @@ class Connection:
 
     def encode_ops(self) -> bytes:
         res = bytes()
+        op_seq_num = self.seq_num
         for op in self.op_send_list:
+            if op_seq_num >= self.send_until:
+                break
             if len(res) + op.length >= gl.MAX_PACKET_SIZE - SEQ_INFO_LEN:
                 break
+            op_seq_num += 1
             res += op.encode()
         return res
 
@@ -89,6 +99,7 @@ class Connection:
         return int.from_bytes(data[0:4], 'big'), data[4]
 
     def handle_incoming_ack(self, ack_num:int):
+        #repeating ack
         if ack_num <= self.seq_num:
             return
 
@@ -137,8 +148,12 @@ class Connection:
             self.op_recv_list.get().handle(self)
 
     def send_new_outgoing(self):
-        #FIXME if no ack received resend with timeout to try to deliver within frame when packet is lost
+        self.send_until = self.seq_num + len(self.op_send_list)
+        self.resend_new_outgoing()
+
+    def resend_new_outgoing(self):
         gl.sock.sendto(crc.add_crc(self.new_outgoing()), self.address)
+        self.reset_timer()
 
     def send_new_ack(self):
         gl.sock.sendto(crc.add_crc(self.new_outgoing_ack()), self.address)
@@ -152,11 +167,23 @@ class Connection:
             self.data_recv_queue.put(crc.remove_crc(data))
 
     def close(self):
+        self.closed = True
         print('Closing connection with: ', self.address)
         #FIXME clear queue first? otherwise all previous ops will be handled before thread closes :(
         self.recv_packet(None)
+        gl.events.append(('DISCONNECT', self.address))
         del gl.connections[self.address]
-        pass
+
+    def reset_timer(self):
+        if self.closed:
+            return
+        try:
+            self.resend_timer.cancel()
+        except AttributeError:
+            pass
+        self.resend_timer = threading.Timer(RESEND_TIMEOUT, handle_resend, (self,))
+        self.resend_timer.start()
+
 
     #incoming data      safe
     #incoming ack       affects sender list and seq_num
@@ -179,6 +206,12 @@ def data_recv_thread(c:Connection):
         except queue.Empty:
             c.close()
             return
+
+def handle_resend(c:Connection):
+    if c.closed:
+        return
+    if c.seq_num < c.send_until:
+        c.resend_new_outgoing()
 
 def connect_to(address:tuple, conn_id:int, player_name:str) -> Connection:
     address = hlp.sanitize_address(address)

@@ -49,23 +49,27 @@ class UiEntity(entity.Entity, ABC):
 
 class Button(UiEntity, ABC):
     idle_anim:animation.Animation
-    hover_anim:animation.Animation
-    click_anim:animation.Animation
+    hover_anim:animation.Animation = None
+    click_anim:animation.Animation = None
 
     def __init__(self, pos: tuple):
         super().__init__(pos, uses_mouse=True)
 
     def on_hover_start(self):
-        self.change_anim(self.hover_anim)
+        if self.hover_anim:
+            self.change_anim(self.hover_anim)
 
     def on_hover_end(self):
-        self.change_anim(self.idle_anim)
+        if self.hover_anim:
+            self.change_anim(self.idle_anim)
 
     def on_mouse_down(self):
-        self.change_anim(self.click_anim)
+        if self.click_anim:
+            self.change_anim(self.click_anim)
 
     def on_mouse_up(self):
-        self.change_anim(self.hover_anim)
+        if self.click_anim:
+            self.change_anim(self.hover_anim)
 
 class TextDisplay(Button, ABC):
     text:str

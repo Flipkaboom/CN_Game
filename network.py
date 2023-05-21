@@ -1,6 +1,7 @@
 import socket
 
 import GameNetworkProtocol as Gnp
+from GameNetworkProtocol.interface import get_events, queue_op, send_all, handle_all
 import instance as inst
 
 address:tuple
@@ -26,6 +27,7 @@ def join(ip:str, port:int):
 def active_conns() -> list[Gnp.conn.Connection]:
     res = list()
     for c in Gnp.gl.connections.values():
-        if c.knows_peer:
+        if c.knows_peer and not c.closed:
             res.append(c)
     return res
+

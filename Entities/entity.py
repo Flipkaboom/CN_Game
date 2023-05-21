@@ -33,7 +33,10 @@ class Entity(ABC):
         self.change_anim(self.idle_anim)
 
     def change_anim(self, anim:animation.Animation):
-        self.curr_anim = anim.copy()
+        if anim.alterable:
+            self.curr_anim = anim.copy()
+        else:
+            self.curr_anim = anim
 
     def mouse_event(self, pos:tuple, down:bool):
         pass

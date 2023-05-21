@@ -96,15 +96,3 @@ class Death(Operation):
 
     def handle(self, parent_conn: conn.Connection):
         pass
-
-class MatchReady(Operation):
-    length = 1
-
-    def handle(self, parent_conn: conn.Connection):
-        pass
-
-class MatchUnready(Operation):
-    length = 1
-
-    def handle(self, parent_conn: conn.Connection):
-        pass

@@ -152,6 +152,8 @@ class Connection:
         self.resend_new_outgoing()
 
     def resend_new_outgoing(self):
+        if self.send_until <= self.seq_num:
+            return
         gl.sock.sendto(crc.add_crc(self.new_outgoing()), self.address)
         self.reset_timer()
 
@@ -172,7 +174,10 @@ class Connection:
         #FIXME clear queue first? otherwise all previous ops will be handled before thread closes :(
         self.recv_packet(None)
         gl.events.append(('DISCONNECT', self.address))
-        del gl.connections[self.address]
+        try:
+            del gl.connections[self.address]
+        except KeyError:
+            pass
 
     def reset_timer(self):
         if self.closed:

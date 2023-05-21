@@ -45,7 +45,7 @@ def join_group(address:tuple):
     if len(gl.connections) > 0:
         raise Exception("Networking already running/connected. Please restart program to retry (this exception probably restarted it for you lol)")
     else:
-        conn.connect_to(address, gl.conn_id, gl.player_name)
+        conn.connect_to_address(address)
 
 def close_all():
     if gl.ready_for_init:

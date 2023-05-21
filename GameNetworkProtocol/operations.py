@@ -88,7 +88,7 @@ class PlayerInfo(Operation):
                 gl.connections[conn_info].send_new_outgoing()
         #Else this is a peer sending us info about a player we don't know anything about -> send conn request
         else:
-            gl.connections[conn_info] = conn.connect_to(conn_info, self.conn_id, self.name)
+            gl.connections[conn_info] = conn.connect_to_known(conn_info, self.conn_id, self.name)
 
     @classmethod
     def my_info(cls):

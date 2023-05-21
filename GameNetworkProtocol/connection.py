@@ -218,7 +218,7 @@ def handle_resend(c:Connection):
     if c.seq_num < c.send_until:
         c.resend_new_outgoing()
 
-def connect_to(address:tuple, conn_id:int, player_name:str) -> Connection:
+def connect_to_known(address:tuple, conn_id:int, player_name:str) -> Connection:
     address = hlp.sanitize_address(address)
     if address in gl.connections:
         raise Exception("Address already in connections list")
@@ -232,6 +232,21 @@ def connect_to(address:tuple, conn_id:int, player_name:str) -> Connection:
     self.player_name = player_name
     self.knows_peer = True
     gl.events.append(('CONNECT', address))
+    self.add_op(ops.PlayerInfo.my_info())
+    self.send_new_outgoing()
+    return self
+
+def connect_to_address(address:tuple) -> Connection:
+    address = hlp.sanitize_address(address)
+    if address in gl.connections:
+        raise Exception("Address already in connections list")
+
+    print('Connecting to: ', address)
+
+    self = Connection(address)
+    #FIXME mutex on this list???
+    gl.connections[address] = self
+
     self.add_op(ops.PlayerInfo.my_info())
     self.send_new_outgoing()
     return self

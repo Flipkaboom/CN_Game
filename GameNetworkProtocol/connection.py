@@ -5,10 +5,10 @@ from collections import deque
 class Connection:
     pass
 
-from GameNetworkProtocol import globals as gl
-from GameNetworkProtocol import helpers as hlp
-from GameNetworkProtocol import operations as ops
-from GameNetworkProtocol import crc
+from . import globals as gl
+from . import helpers as hlp
+from . import operations as ops
+from . import crc
 #operations import at bottom of file
 
 import threading

@@ -3,7 +3,7 @@ import threading
 import socket
 import time
 
-from GameNetworkProtocol import connection as conn, globals as gl, receiver as rcv, operations as ops, keep_alive
+from . import connection as conn, globals as gl, receiver as rcv, operations as ops, keep_alive
 
 def initialize(name:str) -> tuple:
     while not gl.ready_for_init:

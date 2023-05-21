@@ -2,7 +2,7 @@ import queue
 import socket
 import threading
 
-from GameNetworkProtocol import connection as conn
+from . import connection as conn
 
 MAX_PACKET_SIZE = 2048
 

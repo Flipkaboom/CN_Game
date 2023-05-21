@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from GameNetworkProtocol import connection as conn
-from GameNetworkProtocol import globals as gl
+from . import connection as conn
+from . import globals as gl
 
 op_num_counter = 0
 

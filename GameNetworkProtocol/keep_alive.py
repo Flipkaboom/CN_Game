@@ -1,6 +1,6 @@
 import time
 
-from GameNetworkProtocol import globals as gl, connection as conn
+from . import globals as gl, connection as conn
 
 def keep_alive_thread():
     while not gl.kill_threads_flag:

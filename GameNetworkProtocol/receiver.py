@@ -1,7 +1,7 @@
 import socket
-from GameNetworkProtocol import globals as gl
-from GameNetworkProtocol import connection as conn
-from GameNetworkProtocol import crc
+from . import globals as gl
+from . import connection as conn
+from . import crc
 
 def global_recv_thread():
     gl.sock.settimeout(1)

@@ -67,28 +67,29 @@ class PlayerInfo(Operation):
         else:
             conn_info = (self.ip, self.port)
 
-        #If we have seen peer before this is a response so fill in info in connection
-        if conn_info in gl.connections:
-            gl.connections[conn_info].address = conn_info
-            gl.connections[conn_info].conn_id = self.conn_id
-            gl.connections[conn_info].player_name = self.name
-            #If we don't know peer, this is response to connection. Respond with all known players' info
-            if not gl.connections[conn_info].knows_peer:
-                #Own player info
-                op = PlayerInfo.my_info()
-                gl.connections[conn_info].add_op(op)
-                #Peer players' info
-                for c in gl.connections.values():
-                    #Do not send back the client's own info, it doesn't like that because it doesn't know its own ip
-                    if c.address != parent_conn.address:
-                        op = PlayerInfo(c.address[0], c.address[1], c.conn_id, c.player_name)
-                        gl.connections[conn_info].add_op(op)
-                gl.connections[conn_info].knows_peer = True
-                gl.events.append(('CONNECT', conn_info))
-                gl.connections[conn_info].send_new_outgoing()
-        #Else this is a peer sending us info about a player we don't know anything about -> send conn request
-        else:
-            gl.connections[conn_info] = conn.connect_to_known(conn_info, self.conn_id, self.name)
+        with gl.conn_lock:
+            #If we have seen peer before this is a response so fill in info in connection
+            if conn_info in gl.connections:
+                gl.connections[conn_info].address = conn_info
+                gl.connections[conn_info].conn_id = self.conn_id
+                gl.connections[conn_info].player_name = self.name
+                #If we don't know peer, this is response to connection. Respond with all known players' info
+                if not gl.connections[conn_info].knows_peer:
+                    #Own player info
+                    op = PlayerInfo.my_info()
+                    gl.connections[conn_info].add_op(op)
+                    #Peer players' info
+                    for c in gl.connections.values():
+                        #Do not send back the client's own info, it doesn't like that because it doesn't know its own ip
+                        if c.address != parent_conn.address:
+                            op = PlayerInfo(c.address[0], c.address[1], c.conn_id, c.player_name)
+                            gl.connections[conn_info].add_op(op)
+                    gl.connections[conn_info].knows_peer = True
+                    gl.events.append(('CONNECT', conn_info))
+                    gl.connections[conn_info].send_new_outgoing()
+            #Else this is a peer sending us info about a player we don't know anything about -> send conn request
+            else:
+                conn.connect_to_known(conn_info, self.conn_id, self.name)
 
     @classmethod
     def my_info(cls):

@@ -4,6 +4,7 @@ import socket
 import time
 
 from . import connection as conn, globals as gl, receiver as rcv, operations as ops, keep_alive
+from .globals import conn_lock
 
 def initialize(name:str) -> tuple:
     while not gl.ready_for_init:
@@ -30,16 +31,19 @@ def initialize(name:str) -> tuple:
     return gl.sock.getsockname()
 
 def queue_op(op:ops.Operation):
-    for c in gl.connections.values():
-        c.add_op(op)
+    with gl.conn_lock:
+        for c in gl.connections.values():
+            c.add_op(op)
 
 def send_all():
-    for c in gl.connections.values():
-        c.send_new_outgoing()
+    with gl.conn_lock:
+        for c in gl.connections.values():
+            c.send_new_outgoing()
 
 def handle_all():
-    for c in gl.connections.values():
-        c.handle_all()
+    with gl.conn_lock:
+        for c in gl.connections.values():
+            c.handle_all()
 
 def join_group(address:tuple):
     if len(gl.connections) > 0:
@@ -56,12 +60,9 @@ def close_all():
     gl.t_recv.join()
     gl.t_alive.join()
 
-    keys = list[tuple]()
-    for key in gl.connections.keys():
-        keys.append(key)
-
-    for key in keys:
-        gl.connections[key].close()
+    with gl.conn_lock:
+        for c in gl.connections.values():
+            c.close()
 
     gl.player_name = 'UNSET'
     gl.conn_id = -1

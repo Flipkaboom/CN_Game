@@ -17,6 +17,7 @@ ready_for_init = True
 t_recv:threading.Thread
 t_alive:threading.Thread
 
+conn_lock:threading.Lock = threading.Lock()
 connections:dict[tuple, conn.Connection] = dict[tuple, conn.Connection]()
 
 events:list[tuple[str, object]] = list[tuple[str, object]]()

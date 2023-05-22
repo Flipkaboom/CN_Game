@@ -1,4 +1,5 @@
 import queue
+import socket
 from collections import deque
 
 #This fixes all the circular import issues
@@ -46,11 +47,9 @@ class Connection:
 
         self.op_send_list = deque[ops.Operation]()
 
-        #FIXME Apparently deque is much faster than queue so switch that if it runs like shit
         self.op_recv_list = deque[ops.Operation]()
         self.net_op_recv_list = deque[ops.Operation]()
 
-        # FIXME any way to make deque? or do without it and get straight from receiver thread?
         self.data_recv_queue = queue.Queue[bytes]()
 
         self.data_recv_thread = threading.Thread(target=data_recv_thread, args=(self,))
@@ -106,7 +105,6 @@ class Connection:
 
         with self.send_list_lock:
             ack_op_count = ack_num - self.seq_num
-            #FIXME is this actually better than using a list (instead of deque) and copying using [ack_op_count:]
             for i in range(0, ack_op_count):
                 try:
                     self.op_send_list.popleft()
@@ -160,11 +158,19 @@ class Connection:
     def resend_new_outgoing(self):
         if self.send_until <= self.seq_num:
             return
-        gl.sock.sendto(crc.add_crc(self.new_outgoing()), self.address)
+        try:
+            gl.sock.sendto(crc.add_crc(self.new_outgoing()), self.address)
+        except socket.error:
+            self.close()
+            return
         self.reset_timer()
 
     def send_new_ack(self):
-        gl.sock.sendto(crc.add_crc(self.new_outgoing_ack()), self.address)
+        try:
+            gl.sock.sendto(crc.add_crc(self.new_outgoing_ack()), self.address)
+        except socket.error:
+            self.close()
+            return
 
     def recv_packet(self, data):
         if data is None:
@@ -181,7 +187,8 @@ class Connection:
         self.recv_packet(None)
         gl.events.append(('DISCONNECT', self.address))
         try:
-            del gl.connections[self.address]
+            with gl.conn_lock:
+                del gl.connections[self.address]
         except KeyError:
             pass
 
@@ -228,14 +235,15 @@ def handle_resend(c:Connection):
 
 def connect_to_known(address:tuple, conn_id:int, player_name:str) -> Connection:
     address = hlp.sanitize_address(address)
-    if address in gl.connections:
-        raise Exception("Address already in connections list")
+    with gl.conn_lock:
+        if address in gl.connections:
+            print("Tried to connect to already connected peer")
+            return None
 
-    print('Connecting to: ', address)
+        print('Connecting to: ', address)
 
-    self = Connection(address)
-    #FIXME mutex on this list???
-    gl.connections[address] = self
+        self = Connection(address)
+        gl.connections[address] = self
     self.conn_id = conn_id
     self.player_name = player_name
     self.knows_peer = True
@@ -246,14 +254,15 @@ def connect_to_known(address:tuple, conn_id:int, player_name:str) -> Connection:
 
 def connect_to_address(address:tuple) -> Connection:
     address = hlp.sanitize_address(address)
-    if address in gl.connections:
-        raise Exception("Address already in connections list")
+    with gl.conn_lock:
+        if address in gl.connections:
+            print("Tried to connect to already connected peer")
+            return None
 
-    print('Connecting to: ', address)
+        print('Connecting to: ', address)
 
-    self = Connection(address)
-    #FIXME mutex on this list???
-    gl.connections[address] = self
+        self = Connection(address)
+        gl.connections[address] = self
 
     self.add_op(ops.PlayerInfo.my_info())
     self.send_new_outgoing()

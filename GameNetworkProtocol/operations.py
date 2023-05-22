@@ -67,9 +67,9 @@ class PlayerInfo(Operation):
         else:
             conn_info = (self.ip, self.port)
 
-        with gl.conn_lock:
-            #If we have seen peer before this is a response so fill in info in connection
-            if conn_info in gl.connections:
+        #If we have seen peer before this is a response so fill in info in connection
+        try:
+            with gl.conn_lock:
                 gl.connections[conn_info].address = conn_info
                 gl.connections[conn_info].conn_id = self.conn_id
                 gl.connections[conn_info].player_name = self.name
@@ -87,9 +87,9 @@ class PlayerInfo(Operation):
                     gl.connections[conn_info].knows_peer = True
                     gl.events.append(('CONNECT', conn_info))
                     gl.connections[conn_info].send_new_outgoing()
-            #Else this is a peer sending us info about a player we don't know anything about -> send conn request
-            else:
-                conn.connect_to_known(conn_info, self.conn_id, self.name)
+        #Else this is a peer sending us info about a player we don't know anything about -> send conn request
+        except KeyError:
+            conn.connect_to_known(conn_info, self.conn_id, self.name)
 
     @classmethod
     def my_info(cls):

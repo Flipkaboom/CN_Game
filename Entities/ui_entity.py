@@ -12,8 +12,7 @@ class UiEntity(entity.Entity, ABC):
     hovering:bool = False
 
     def __init__(self, pos:tuple, uses_mouse:bool = False):
-        super().__init__()
-        self.move(pos)
+        super().__init__(pos)
         self.uses_mouse = uses_mouse
 
     def update(self):
@@ -105,7 +104,8 @@ class TextInput(TextDisplay):
 
         self.active = active
         if active:
-            user_input.text_input = ''
+            #FIXME before release
+            user_input.text_input = 'red'
 
     def update(self):
         if self.active and not self.disabled:

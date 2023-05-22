@@ -7,7 +7,7 @@ import network
 
 class MainMenu(game_state.GameState):
     def __init__(self):
-        self.init_layers()
+        super().__init__()
 
         self.add_layer('background')
         self.add_layer('ui', uses_mouse=True)
@@ -22,8 +22,8 @@ class MainMenu(game_state.GameState):
         self.update_all()
 
 class HostButton(ui_entity.Button):
-    idle_anim = animation.Animation('host_button', loop = True)
-    hover_anim = animation.Animation('host_button_hover', loop = True)
+    idle_anim = animation.Animation('host_button')
+    hover_anim = animation.Animation('host_button_hover')
     click_anim = hover_anim
 
     def on_mouse_up(self):
@@ -32,8 +32,8 @@ class HostButton(ui_entity.Button):
         inst.change_state(lobby.Lobby())
 
 class JoinButton(ui_entity.Button):
-    idle_anim = animation.Animation('join_button', loop = True)
-    hover_anim = animation.Animation('join_button_hover', loop = True)
+    idle_anim = animation.Animation('join_button')
+    hover_anim = animation.Animation('join_button_hover')
     click_anim = hover_anim
 
     def on_mouse_up(self):
@@ -43,6 +43,6 @@ class JoinButton(ui_entity.Button):
 class NameInput(ui_entity.TextInput):
     text_offset = (33, 0)
     font_size = 52
-    idle_anim = animation.Animation('name_input', loop=True, alterable=True)
+    idle_anim = animation.Animation('name_input', alterable=True)
     hover_anim = idle_anim
     click_anim = hover_anim

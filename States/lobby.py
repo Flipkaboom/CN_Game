@@ -1,16 +1,17 @@
 import pygame
 
 import network
-from Entities import animation, entity, ui_entity, player
-from States import game_state, playing
+from Entities import animation, ui_entity
+from States import game_state
+from States.Playing import playing, player
 import instance as inst
 
 
 class Lobby(game_state.GameState):
     def __init__(self):
-        self.players:dict[tuple[str, int], player.Player] = dict[tuple[str, int], player.Player]()
+        super().__init__()
 
-        self.init_layers()
+        self.players:dict[tuple[str, int], player.Player] = dict[tuple[str, int], player.Player]()
 
         self.add_layer('background')
         self.add_layer('ui', uses_mouse=True)
@@ -80,7 +81,7 @@ class Lobby(game_state.GameState):
                 all_ready = False
                 break
         if all_ready:
-            player_me = player.Player(inst.name, self.color_preview.rgb)
+            player_me = player.Player((960, 200), inst.name, self.color_preview.rgb, remote=False)
             inst.change_state(playing.Playing(player_me, self.players))
             return
 
@@ -92,14 +93,14 @@ class Lobby(game_state.GameState):
 
 
 class Header(ui_entity.UiEntity):
-    idle_anim = animation.Animation('lobby_header', loop=True)
+    idle_anim = animation.Animation('lobby_header')
 
 class ReadyButton(ui_entity.Button):
-    idle_anim = animation.Animation('lobby_ready', loop = True)
-    hover_anim = animation.Animation('lobby_ready_hover', loop = True)
+    idle_anim = animation.Animation('lobby_ready')
+    hover_anim = animation.Animation('lobby_ready_hover')
     click_anim = hover_anim
 
-    locked_anim = animation.Animation('lobby_ready_locked', loop = True)
+    locked_anim = animation.Animation('lobby_ready_locked')
 
     locked:bool = False
 
@@ -120,26 +121,26 @@ class PlayerUi(ui_entity.TextDisplay):
     text_offset = (50,50)
     font_size = 50
 
-    idle_anim = animation.Animation('lobby_player_empty', loop=True, alterable=True)
+    idle_anim = animation.Animation('lobby_player_empty', alterable=True)
     # hover_anim = idle_anim
     # click_anim = hover_anim
-    ready_anim = animation.Animation('lobby_player_ready', loop=True, alterable=True)
-    conn_anim = animation.Animation('lobby_player', loop=True, alterable=True)
+    ready_anim = animation.Animation('lobby_player_ready', alterable=True)
+    conn_anim = animation.Animation('lobby_player', alterable=True)
 
 class ConnectionUi(PlayerUi):
-    idle_anim = animation.Animation('lobby_conn', loop=True, alterable=True)
+    idle_anim = animation.Animation('lobby_conn', alterable=True)
     # hover_anim = idle_anim
     # click_anim = hover_anim
 
 class ColorInput(ui_entity.TextInput):
     text_offset = (33, 0)
     font_size = 52
-    idle_anim = animation.Animation('lobby_color_input', loop=True, alterable=True)
+    idle_anim = animation.Animation('lobby_color_input', alterable=True)
     # hover_anim = idle_anim
     # click_anim = hover_anim
 
 class ColorPreview(ui_entity.UiEntity):
-    idle_anim = animation.Animation('lobby_preview_unknown', loop=True)
+    idle_anim = animation.Animation('lobby_preview_unknown')
 
     rgb:tuple[int, int, int] = (0, 0, 0)
     curr_color:str = ''
@@ -154,7 +155,7 @@ class ColorPreview(ui_entity.UiEntity):
             try:
                 tmp = pygame.Color(new_color)
                 self.rgb = tmp.r, tmp.g, tmp.b
-                self.change_anim(animation.Animation('lobby_preview', loop=True, color=self.rgb))
+                self.change_anim(animation.Animation('lobby_preview', color=self.rgb))
                 self.valid_color = True
             except ValueError:
                 self.change_anim(self.idle_anim)
@@ -171,8 +172,9 @@ class MatchReady(Operation):
 
     def handle(self, parent_conn:conn.Connection):
         # print('Got ready from ', parent_conn.player_name)
-        inst.state.players[parent_conn.address].ready = True
-        inst.state.players[parent_conn.address].color = self.color
+        if type(inst.state) == Lobby:
+            inst.state.players[parent_conn.address].ready = True
+            inst.state.players[parent_conn.address].update_color(self.color)
 
     def __init__(self, color:tuple[int, int, int]):
         self.color = color

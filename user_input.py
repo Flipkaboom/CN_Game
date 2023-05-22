@@ -37,3 +37,6 @@ def handle_event(e:pygame.event.Event):
             text_input = text_input[:-1]
         if e.key == pygame.K_F11:
             pygame.display.toggle_fullscreen()
+
+        if inst.state.uses_key_events:
+            inst.state.key_events.put(e)

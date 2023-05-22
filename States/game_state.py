@@ -1,6 +1,9 @@
+import queue
 from abc import ABC, abstractmethod
 
 from collections import OrderedDict
+
+import pygame.event
 
 from Entities import entity
 
@@ -18,14 +21,19 @@ class Layer:
         self.entities.append(e)
 
 class GameState(ABC):
-    layers:OrderedDict[str, Layer] #FIXME add list type
+    layers:OrderedDict[str, Layer]
+
+    uses_key_events:bool = False
+    key_events:queue.Queue[pygame.event.Event]
+
+    def __init__(self):
+        super().__init__()
+        self.layers = OrderedDict[str, Layer]()
+        self.key_events = queue.Queue[pygame.event.Event]()
 
     @abstractmethod
     def frame_logic(self):
         pass
-
-    def init_layers(self):
-        self.layers = OrderedDict[str, Layer]()
 
     def add_layer(self, name:str, collision:bool = False, uses_mouse:bool = False):
         self.layers[name] = Layer(collision, uses_mouse)
@@ -47,7 +55,7 @@ class GameState(ABC):
 """"
 class Template(game_state.GameState):
     def __init__(self):
-        self.init_layers()
+        super().__init__()
 
         self.add_layer('background')
         self.add_layer('ui', uses_mouse=True)

@@ -47,7 +47,7 @@ def start_loop():
 
         frame_count += 1
 
-        # clock.tick(60)
+        clock.tick(30)
 
     time_total = time.time() - time_start
     print('Ran ', frame_count, ' frames in ', time_total, ' seconds.')

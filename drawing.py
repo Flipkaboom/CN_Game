@@ -43,7 +43,7 @@ class Renderer:
         for l in inst.state.layers.values():
             for e in l.entities:
                 if e.visible:
-                    self.canvas.blit(e.curr_anim.sprite, e.bbox)
+                    self.canvas.blit(e.curr_anim.sprite, e.bbox.move(e.curr_anim.offset))
 
     def update_screen_size(self):
         self.screen_size = self.screen.get_size()

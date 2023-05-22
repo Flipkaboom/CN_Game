@@ -22,8 +22,8 @@ class Animation:
     static:bool = False
     finished:bool = False
 
-    def __init__(self, name:str, loop:bool = False, offset:tuple = (0,0), frame_dur:int = BASE_FRAME_DUR,
-                 color:tuple = (), alterable:bool = False, sprite_list:list[pygame.Surface] = []):
+    def __init__(self, name:str, loop:bool = True, offset:tuple = (0,0), frame_dur:int = BASE_FRAME_DUR,
+                 color:tuple = (), alterable:bool = False, sprite_list:list[pygame.Surface] = None):
         self.loop = loop
         self.offset = offset
         self.frame_dur = frame_dur
@@ -83,16 +83,16 @@ class Animation:
             self.sprite = self.sprite_original.copy()
 
 
-    # def reset(self):
-    #     self.frame_count = 0
-    #     self.curr_frame = 0
-    #     self.finished: bool = False
-    #
-    #     if self.alterable:
-    #         self.sprite_original = self.sprite_list[self.curr_frame]
-    #         self.sprite = self.sprite_original.copy()
-    #     else:
-    #         self.sprite = self.sprite_list[0]
-    #     return self
+    def reset(self):
+        self.frame_count = 0
+        self.curr_frame = 0
+        self.finished: bool = False
+
+        if self.alterable:
+            self.sprite_original = self.sprite_list[self.curr_frame]
+            self.sprite = self.sprite_original.copy()
+        else:
+            self.sprite = self.sprite_list[0]
+        return self
 
 import pygame

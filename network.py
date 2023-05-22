@@ -12,7 +12,7 @@ def init():
     _, port = Gnp.initialize(inst.name)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(('8.8.8.8', 80))
+    s.connect(('8.8.8.8', 80)) #FIXME make right port num?
     address = (s.getsockname()[0], port)
 
     initialized = True
@@ -26,8 +26,9 @@ def join(ip:str, port:int):
 
 def active_conns() -> list[Gnp.conn.Connection]:
     res = list()
-    for c in Gnp.gl.connections.values():
-        if c.knows_peer and not c.closed:
-            res.append(c)
+    with Gnp.conn_lock:
+        for c in Gnp.gl.connections.values():
+            if c.knows_peer and not c.closed:
+                res.append(c)
     return res
 

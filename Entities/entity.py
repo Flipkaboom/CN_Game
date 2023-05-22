@@ -15,11 +15,11 @@ class Entity(ABC):
     curr_anim:animation.Animation
 
 
-    def __init__(self):
+    def __init__(self, pos:[int, int]):
         self.change_anim(self.idle_anim)
         self.bbox = self.curr_anim.sprite.get_rect()
+        self.move(pos)
 
-    @abstractmethod
     def update(self):
         self.update_animation()
 
@@ -36,7 +36,7 @@ class Entity(ABC):
         if anim.alterable:
             self.curr_anim = anim.copy()
         else:
-            self.curr_anim = anim
+            self.curr_anim = anim.reset()
 
     def mouse_event(self, pos:tuple, down:bool):
         pass
@@ -44,18 +44,5 @@ class Entity(ABC):
     def move(self, pos:tuple):
         self.bbox = self.bbox.move(pos)
 
-
-class PhysicsEntity(Entity, ABC):
-    gravity:bool
-
-    speed:tuple[int, int]
-
-    @abstractmethod
-    def update(self):
-        #apply gravity
-
-        #move
-
-        #check collision
-
-        super().update()
+    def set_pos(self, pos:[int, int]):
+        self.bbox = pygame.Rect(pos[0], pos[1], self.bbox.width, self.bbox.height)

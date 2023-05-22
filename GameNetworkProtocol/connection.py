@@ -34,7 +34,7 @@ class Connection:
     send_until:int = 0
 
     # op_send_list:deque[ops.Operation]
-    # op_recv_list:queue.Queue[ops.Operation]
+    # op_recv_list:deque[ops.Operation]
 
     send_list_lock:threading.Lock
 
@@ -47,9 +47,10 @@ class Connection:
         self.op_send_list = deque[ops.Operation]()
 
         #FIXME Apparently deque is much faster than queue so switch that if it runs like shit
-        self.op_recv_list = queue.Queue[ops.Operation]()
-        self.net_op_recv_list = queue.Queue[ops.Operation]()
+        self.op_recv_list = deque[ops.Operation]()
+        self.net_op_recv_list = deque[ops.Operation]()
 
+        # FIXME any way to make deque? or do without it and get straight from receiver thread?
         self.data_recv_queue = queue.Queue[bytes]()
 
         self.data_recv_thread = threading.Thread(target=data_recv_thread, args=(self,))
@@ -80,9 +81,9 @@ class Connection:
 
             if seq_num_counter >= self.ack_num:
                 if op.priority_op:
-                    self.net_op_recv_list.put(op)
+                    self.net_op_recv_list.append(op)
                 else:
-                    self.op_recv_list.put(op)
+                    self.op_recv_list.append(op)
 
             i += op.length
             seq_num_counter += 1
@@ -123,9 +124,11 @@ class Connection:
             self.handle_incoming_ack(seq_num)
         else:
             self.decode_ops(data[SEQ_INFO_LEN:], seq_num)
-            while not self.net_op_recv_list.empty():
-                op = self.net_op_recv_list.get()
-                op.handle(self)
+            while 1:
+                try:
+                    self.net_op_recv_list.popleft().handle(self)
+                except IndexError:
+                    break
             self.send_new_ack()
 
     def new_outgoing(self) -> bytes:
@@ -144,8 +147,11 @@ class Connection:
             self.op_send_list.append(op)
 
     def handle_all(self):
-        while not self.op_recv_list.empty():
-            self.op_recv_list.get().handle(self)
+        while 1:
+            try:
+                self.op_recv_list.popleft().handle(self)
+            except IndexError:
+                break
 
     def send_new_outgoing(self):
         self.send_until = self.seq_num + len(self.op_send_list)
@@ -200,6 +206,8 @@ def data_recv_thread(c:Connection):
         try:
             data = c.data_recv_queue.get(timeout=CONN_TIMEOUT)
             if data is None:
+                return
+            if c.closed:
                 return
             c.handle_incoming(data)
 

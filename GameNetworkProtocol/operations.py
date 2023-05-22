@@ -24,9 +24,9 @@ class Operation(ABC):
 
     def _encode_values(self, ints:tuple = (), chars:tuple = ()) -> bytes:
         res = bytes()
-        res += self.num.to_bytes(1, 'big')
+        res += self.num.to_bytes(1, 'big', signed=True)
         for val in ints:
-            res += val.to_bytes(4, 'big')
+            res += val.to_bytes(4, 'big', signed=True)
         for val in chars:
             res += val.to_bytes(1, 'big')
         return res
@@ -36,7 +36,7 @@ class Operation(ABC):
         res = list()
         i = 1
         for _ in range(0, num_ints * 4, 4):
-            res.append(int.from_bytes(data[i:i + 4], 'big'))
+            res.append(int.from_bytes(data[i:i + 4], 'big', signed=True))
             i += 4
         for _ in range(0, num_chars):
             res.append(data[i])

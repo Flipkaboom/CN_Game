@@ -1,5 +1,4 @@
 import queue
-from enum import Enum
 
 import pygame.key
 
@@ -8,15 +7,8 @@ from States.Playing import playing
 from GameNetworkProtocol import connection
 from Entities import physics, animation
 from . import ops
+from .direction import Direction
 import instance as inst
-
-
-class Direction(Enum):
-    UP = 0
-    LEFT = 1
-    DOWN = 2
-    RIGHT = 3
-    NONE = 4
 
 
 class Player(physics.PhysicsEntity):
@@ -25,10 +17,16 @@ class Player(physics.PhysicsEntity):
     ready:bool = False
     color:tuple[int, int, int]
 
+    damage:int = 0
+    stun_dur:int = 0
+
     controls_up:bool = False
     controls_left:bool = False
     controls_down:bool = False
     controls_right:bool = False
+    blocking:bool = False
+
+    controls_disabled:bool = False
 
     can_double_jump:bool = True
     jump_remaining:int = 0
@@ -54,9 +52,15 @@ class Player(physics.PhysicsEntity):
         self.change_anim(self.idle_anim)
 
     def load_animations(self):
-        self.idle_anim = animation.Animation('player_idle', frame_dur=15, color=self.color)
-        self.attack_right_anim = animation.Animation('player_attack_r', offset=(-50, -50), frame_dur=3,
+        self.idle_anim = animation.Animation('player_idle', frame_dur=7, color=self.color)
+        self.stun_anim = animation.Animation('player_stunned', frame_dur=5, color=self.color)
+        self.attack_right_anim = animation.Animation('player_attack_r', offset=(-50, -50), frame_dur=5,
                                                      color=self.color, loop=False)
+        self.attack_left_anim = animation.Animation('player_attack_l', offset=(-50, -50), frame_dur=5,
+                                                     color=self.color, loop=False)
+        self.attack_up_anim = animation.Animation('player_attack_u', offset=(-50, -50), frame_dur=5,
+                                                    color=self.color, loop=False)
+
 
     @classmethod
     def from_connection(cls, c:connection.Connection):
@@ -74,6 +78,14 @@ class Player(physics.PhysicsEntity):
             self.update_shared_controls()
 
         #shared update
+        if self.stun_dur > 0:
+            self.controls_disabled = True
+            self.stun_dur -= 1
+        elif self.stun_dur == 0:
+            self.change_anim(self.idle_anim)
+            self.controls_disabled = False
+            self.stun_dur -= 1
+
         if self.jump_remaining > 0:
             self.jump_remaining -= 1
 
@@ -97,10 +109,24 @@ class Player(physics.PhysicsEntity):
     def update_local_input(self):
         keys = pygame.key.get_pressed()
 
+        if self.controls_disabled:
+            self.controls_left = False
+            self.controls_right = False
+            self.controls_down = False
+            self.controls_up = False
+            self.blocking = False
+            while 1:
+                try:
+                    inst.state.key_events.get(block=False)
+                except queue.Empty:
+                    break
+            return
+
         self.controls_left = keys[pygame.K_a]
         self.controls_right = keys[pygame.K_d]
         self.controls_down = keys[pygame.K_s]
         self.controls_up = keys[pygame.K_w] or keys[pygame.K_SPACE]
+        self.blocking = keys[pygame.KMOD_SHIFT]
 
         while 1:
             try:
@@ -108,22 +134,23 @@ class Player(physics.PhysicsEntity):
             except queue.Empty:
                 break
             if key == pygame.K_w or key == pygame.K_SPACE:
-                self.jump_local()
+                self.jump()
             if key == pygame.K_UP or key == pygame.K_KP8:
                 self.attack_start(Direction.UP)
             if key == pygame.K_LEFT or key == pygame.K_KP4:
                 self.attack_start(Direction.LEFT)
             if key == pygame.K_DOWN or key == pygame.K_KP5:
-                self.attack_start(Direction.DOWN)
+                pass
+                # self.attack_start(Direction.DOWN)
             if key == pygame.K_RIGHT or key == pygame.K_KP6:
                 self.attack_start(Direction.RIGHT)
 
     def update_shared_controls(self):
         if self.controls_left:
             if self.colliding_down:
-                self.accelerate((-15, 0), max_x=-30)
+                self.accelerate((-15, 0), max_x=30)
             else:
-                self.accelerate((-4, 0), max_x=-30)
+                self.accelerate((-4, 0), max_x=30)
 
         if self.controls_right:
             if self.colliding_down:
@@ -142,43 +169,96 @@ class Player(physics.PhysicsEntity):
 
         if self.controls_up:
             if self.jump_remaining > 0:
-                self.accelerate((0, -200), max_y=-25)
+                self.accelerate((0, -200), max_y=25)
 
     def attack_start(self, direction:Direction):
         if self.attack_dir != Direction.NONE:
             return
 
+        if not self.remote:
+            network.queue_op(ops.Attack(direction))
+
+        self.controls_disabled = True
+
         if direction == Direction.RIGHT:
             self.change_anim(self.attack_right_anim)
-            self.attack_countdown = 7
-            self.attack_dir = Direction.RIGHT
-            # self.accelerate((200,0))
+            self.attack_countdown = 10
+        elif direction == Direction.LEFT:
+            self.change_anim(self.attack_left_anim)
+            self.attack_countdown = 10
+        elif direction == Direction.UP:
+            self.change_anim(self.attack_up_anim)
+            self.attack_countdown = 10
+        elif direction == Direction.DOWN:
+            raise Exception("attack down doesn't exist")
+            # self.change_anim(self.attack_right_anim)
+            # self.attack_countdown = 7
+        self.attack_dir = direction
 
     def attack(self, attack_dir:Direction):
         if attack_dir == Direction.NONE:
             return
-        if attack_dir == Direction.RIGHT:
-            attack_bbox = pygame.Rect((self.bbox.x + 85, self.bbox.y - 28), (65, 120))
+        elif attack_dir == Direction.RIGHT:
+            attack_bbox = pygame.Rect((self.bbox.x + 70, self.bbox.y - 50), (80, 150))
+        elif attack_dir == Direction.LEFT:
+            attack_bbox = pygame.Rect((self.bbox.x - 50, self.bbox.y - 50), (80, 150))
+        elif attack_dir == Direction.UP:
+            attack_bbox = pygame.Rect((self.bbox.x - 35, self.bbox.y - 50), (170, 80))
         else:
             return
 
         state:playing.Playing = inst.state
-        for e in state.layers['players'].entities:
-            if attack_bbox.colliderect(e.bbox):
-                # e:Player = e
-                e.accelerate((100, 0))
+        if self.remote:
+            if attack_bbox.colliderect(state.player_me.bbox):
+                state.player_me.hit(attack_dir)
+        # else:
+        #     #dead-reckoning but it has too many issues because of getting stunned
+        #     for e in state.players.values():
+        #         if attack_bbox.colliderect(e.bbox):
+        #             # e:Player = e
+        #             e.hit(attack_dir)
 
-    def jump_local(self):
+    def anim_done(self):
+        if 'player_attack' in self.curr_anim.name:
+            self.controls_disabled = False
+
+        super().anim_done()
+
+    def hit(self, hit_dir:Direction = Direction.NONE):
+        self.stun(15)
+        self.damage += 5
+
+        self.hit_local_portion(hit_dir)
+
+    def hit_local_portion(self, hit_dir:Direction):
+        if not self.remote:
+            network.queue_op(ops.Hit(self.damage))
+
+            hit_strength = self.damage
+            hit_strength_secondary:int = int(self.damage / 2)
+            if hit_dir == Direction.UP:
+                self.accelerate((0, -hit_strength))
+            elif hit_dir == Direction.LEFT:
+                self.accelerate((-hit_strength, -hit_strength_secondary))
+            elif hit_dir == Direction.DOWN:
+                self.accelerate((0, hit_strength))
+            elif hit_dir == Direction.RIGHT:
+                self.accelerate((hit_strength, -hit_strength_secondary))
+
+    def stun(self, dur:int):
+        self.stun_dur = dur
+        self.attack_countdown = 0
+        self.attack_dir = Direction.NONE
+        self.change_anim(self.stun_anim)
+
+    def jump(self):
         if self.colliding_down:
-            self.accelerate((0, -200), max_y=-25)
+            self.accelerate((0, -200), max_y=25)
             self.jump_remaining = 10
         elif self.can_double_jump:
-            self.accelerate((0, -200), max_y=-25)
+            self.accelerate((0, -200), max_y=25)
             self.can_double_jump = False
             self.jump_remaining = 5
-
-    def jump_remote(self):
-        pass
 
     def on_collide_down(self):
         self.can_double_jump = True

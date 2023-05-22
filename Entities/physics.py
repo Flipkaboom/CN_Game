@@ -33,14 +33,14 @@ class PhysicsEntity(entity.Entity):
             speed_x = min(acceleration[0] + self.speed[0], max_x)
             speed_x = max(speed_x, self.speed[0])
         else:
-            speed_x = max(acceleration[0] + self.speed[0], max_x)
+            speed_x = max(acceleration[0] + self.speed[0], -max_x)
             speed_x = min(speed_x, self.speed[0])
 
         if acceleration[1] >= 0:
             speed_y = min(acceleration[1] + self.speed[1], max_y)
             speed_y = max(speed_y, self.speed[1])
         else:
-            speed_y = max(acceleration[1] + self.speed[1], max_y)
+            speed_y = max(acceleration[1] + self.speed[1], -max_y)
             speed_y = min(speed_y, self.speed[1])
 
 

@@ -2,6 +2,8 @@ from GameNetworkProtocol import connection as conn
 from GameNetworkProtocol.operations import Operation
 import instance as inst
 from States.Playing import playing
+from .direction import Direction
+
 
 class Pos(Operation):
     length = 21
@@ -53,36 +55,45 @@ class Pos(Operation):
 
 
 class Attack(Operation):
-    length = 0 #FIXME
+    length = 2
+
+    direction:Direction
 
     def handle(self, parent_conn:conn.Connection):
-        pass
+        state:playing.Playing = inst.state
+        state.players[parent_conn.address].attack_start(self.direction)
 
-    def __init__(self):
-        pass
+    def __init__(self, direction:Direction):
+        self.direction = direction
 
     def encode(self):
-        pass
+        return self._encode_values(chars=(self.direction.value,))
 
     @classmethod
     def from_data(cls, data:bytes):
-        pass
+        dir_num, = Operation._decode_values(data, num_chars=1)
+        return cls(Direction(dir_num))
 
 class Hit(Operation):
-    length = 0 #FIXME
+    length = 5
+
+    new_damage:int
 
     def handle(self, parent_conn:conn.Connection):
-        pass
+        state:playing.Playing = inst.state
+        p = state.players[parent_conn.address]
+        p.hit()
 
-    def __init__(self):
-        pass
+    def __init__(self, new_damage:int):
+        self.new_damage = new_damage
 
     def encode(self):
-        pass
+        return self._encode_values((self.new_damage,))
 
     @classmethod
     def from_data(cls, data:bytes):
-        pass
+        new_damage, = Operation._decode_values(data, num_ints=1)
+        return cls(new_damage)
 
 class BlockStart(Operation):
     length = 1
@@ -91,34 +102,6 @@ class BlockStart(Operation):
         pass
 
 class BlockStop(Operation):
-    length = 1
-
-    def handle(self, parent_conn: conn.Connection):
-        pass
-
-class Jump(Operation):
-    length = 0 #FIXME
-
-    def handle(self, parent_conn:conn.Connection):
-        pass
-
-    def __init__(self):
-        pass
-
-    def encode(self):
-        pass
-
-    @classmethod
-    def from_data(cls, data:bytes):
-        pass
-
-class DodgeStart(Operation):
-    length = 1
-
-    def handle(self, parent_conn: conn.Connection):
-        pass
-
-class DodgeStop(Operation):
     length = 1
 
     def handle(self, parent_conn: conn.Connection):

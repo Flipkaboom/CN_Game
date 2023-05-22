@@ -13,6 +13,7 @@ class Animation:
     color:tuple
     alterable:bool
 
+    name:str
     sprite:pygame.Surface
     sprite_original:pygame.Surface
     sprite_list:list[pygame.Surface]
@@ -24,16 +25,17 @@ class Animation:
 
     def __init__(self, name:str, loop:bool = True, offset:tuple = (0,0), frame_dur:int = BASE_FRAME_DUR,
                  color:tuple = (), alterable:bool = False, sprite_list:list[pygame.Surface] = None):
+        self.name = name
         self.loop = loop
         self.offset = offset
         self.frame_dur = frame_dur
         self.color = color
         self.alterable = alterable
 
-        if name == '':
-            self.sprite_list = sprite_list
-        else:
+        if not sprite_list:
             self.sprite_list = loader.load_sprites(name)
+        else:
+            self.sprite_list = sprite_list
 
         if not self.color == ():
             self._color_sprites()
@@ -52,7 +54,7 @@ class Animation:
             self.sprite = self.sprite_list[0]
 
     def copy(self):
-        return Animation('', self.loop, self.offset, self.frame_dur, (), self.alterable, self.sprite_list)
+        return Animation(self.name, self.loop, self.offset, self.frame_dur, (), self.alterable, self.sprite_list)
 
     def _color_sprites(self):
         for greyscale_img in self.sprite_list:

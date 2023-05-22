@@ -11,9 +11,20 @@ def init():
     global address, initialized
     _, port = Gnp.initialize(inst.name)
 
+    # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # s.connect(('8.8.8.8', 80)) #FIXME make right port num?
+    # address = (s.getsockname()[0], port)
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(('8.8.8.8', 80)) #FIXME make right port num?
-    address = (s.getsockname()[0], port)
+    s.settimeout(0)
+    try:
+        s.connect(('8.8.8.8', port))  # FIXME make right port num? and also it breaks when no internet 10.254.254.254
+        address = (s.getsockname()[0], port)
+    except Exception:
+        #TODO add another try for local ip?
+        address = ('127.0.0.1', port)
+    finally:
+        s.close()
 
     initialized = True
 

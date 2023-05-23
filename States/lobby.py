@@ -1,3 +1,5 @@
+import queue
+
 import pygame
 
 import network
@@ -6,9 +8,8 @@ from States import game_state
 from States.Playing import playing, player
 import instance as inst
 
-
 class Lobby(game_state.GameState):
-    def __init__(self):
+    def __init__(self, existing_conns:list[tuple[str, int]] = None):
         super().__init__()
 
         self.players:dict[tuple[str, int], player.Player] = dict[tuple[str, int], player.Player]()
@@ -42,6 +43,15 @@ class Lobby(game_state.GameState):
         conn_ui.text = network.address[0] + ':' + str(network.address[1])
         self.layers['ui'].add_entity(conn_ui)
 
+        if existing_conns:
+            for c in existing_conns:
+                try:
+                    self.players[c] = player.Player.from_connection(network.Gnp.gl.connections[c])
+                    if self.ready:
+                        network.queue_op(MatchReady(self.color_preview.rgb))
+                except KeyError:
+                    print('Got CONNECT event but connection is not available')
+
     def frame_logic(self):
 
         for e in network.get_events():
@@ -57,6 +67,14 @@ class Lobby(game_state.GameState):
                     del self.players[e[1]]
                 except KeyError:
                     print('Got DISCONNECT event but connection was not in player list')
+
+        global ready_queue
+        while 1:
+            try:
+                op, c = ready_queue.get(block=False)
+                op.handle(c)
+            except queue.Empty:
+                break
 
         i = 0
         player_uis = self.layers['players'].entities
@@ -165,6 +183,8 @@ class ColorPreview(ui_entity.UiEntity):
 from GameNetworkProtocol import connection as conn
 from GameNetworkProtocol.operations import Operation
 
+ready_queue = queue.Queue[Operation, conn.Connection]()
+
 class MatchReady(Operation):
     length = 4
 
@@ -175,6 +195,9 @@ class MatchReady(Operation):
         if type(inst.state) == Lobby:
             inst.state.players[parent_conn.address].ready = True
             inst.state.players[parent_conn.address].update_color(self.color)
+        else:
+            ready_queue.put((self, parent_conn))
+
 
     def __init__(self, color:tuple[int, int, int]):
         self.color = color

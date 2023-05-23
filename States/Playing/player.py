@@ -6,9 +6,14 @@ import network
 from States.Playing import playing
 from GameNetworkProtocol import connection
 from Entities import physics, animation
+from Entities.ui_entity import TextDisplay
 from . import ops
 from .direction import Direction
 import instance as inst
+
+
+class NameTag(TextDisplay):
+    idle_anim = animation.Animation('player_name_tag', alterable=True)
 
 
 class Player(physics.PhysicsEntity):
@@ -17,6 +22,8 @@ class Player(physics.PhysicsEntity):
     ready:bool = False
     color:tuple[int, int, int]
 
+    name_tag:NameTag
+
     damage:int = 0
     stun_dur:int = 0
 
@@ -24,12 +31,14 @@ class Player(physics.PhysicsEntity):
     controls_left:bool = False
     controls_down:bool = False
     controls_right:bool = False
-    blocking:bool = False
+    controls_shift:bool = False
 
     controls_disabled:bool = False
 
     can_double_jump:bool = True
     jump_remaining:int = 0
+    blocking:bool = False
+    dead:bool = False
 
     attack_dir:Direction= Direction.NONE
     #num of frames to skip before attacking
@@ -41,6 +50,9 @@ class Player(physics.PhysicsEntity):
         self.name = name
         self.color = color
         self.remote = remote
+
+        self.name_tag = NameTag((0,0), 25, (5,-5), (255, 255, 255))
+        self.name_tag.text = self.name
 
         self.load_animations()
 
@@ -54,6 +66,7 @@ class Player(physics.PhysicsEntity):
     def load_animations(self):
         self.idle_anim = animation.Animation('player_idle', frame_dur=7, color=self.color)
         self.stun_anim = animation.Animation('player_stunned', frame_dur=5, color=self.color)
+        self.block_anim = animation.Animation('player_block', color=self.color)
         self.attack_right_anim = animation.Animation('player_attack_r', offset=(-50, -50), frame_dur=5,
                                                      color=self.color, loop=False)
         self.attack_left_anim = animation.Animation('player_attack_l', offset=(-50, -50), frame_dur=5,
@@ -67,11 +80,23 @@ class Player(physics.PhysicsEntity):
         return cls((960,200), c.player_name, (0,0,0))
 
     def update(self):
+        if self.dead:
+            return
+
         if self.remote:
+            #remote update
             self.update_remote()
         else:
+            #local update
             self.update_local_input()
 
+            if self.blocking and not self.controls_shift:
+                self.stop_block()
+
+            if self.bbox.y > 1080:
+                self.die()
+
+        #dead reckoning
         if not self.received_network:
             if self.remote:
                 print('Performed dead reckoning on ', self.name)
@@ -79,11 +104,11 @@ class Player(physics.PhysicsEntity):
 
         #shared update
         if self.stun_dur > 0:
-            self.controls_disabled = True
+            self.disable_controls()
             self.stun_dur -= 1
         elif self.stun_dur == 0:
             self.change_anim(self.idle_anim)
-            self.controls_disabled = False
+            self.enable_controls()
             self.stun_dur -= 1
 
         if self.jump_remaining > 0:
@@ -99,6 +124,9 @@ class Player(physics.PhysicsEntity):
         #update physics
         super().update()
 
+        self.name_tag.set_pos((self.bbox.x - 25, self.bbox.bottom + 10))
+
+        #pos op
         if not self.remote:
             network.queue_op(ops.Pos((self.bbox.x, self.bbox.y), self.speed,
                                      self.controls_up, self.controls_left, self.controls_down, self.controls_right))
@@ -109,24 +137,17 @@ class Player(physics.PhysicsEntity):
     def update_local_input(self):
         keys = pygame.key.get_pressed()
 
+        #controls that should stay active
+        self.controls_shift = keys[pygame.K_LSHIFT]
+
         if self.controls_disabled:
-            self.controls_left = False
-            self.controls_right = False
-            self.controls_down = False
-            self.controls_up = False
-            self.blocking = False
-            while 1:
-                try:
-                    inst.state.key_events.get(block=False)
-                except queue.Empty:
-                    break
+            self.disable_controls()
             return
 
         self.controls_left = keys[pygame.K_a]
         self.controls_right = keys[pygame.K_d]
         self.controls_down = keys[pygame.K_s]
         self.controls_up = keys[pygame.K_w] or keys[pygame.K_SPACE]
-        self.blocking = keys[pygame.KMOD_SHIFT]
 
         while 1:
             try:
@@ -135,15 +156,17 @@ class Player(physics.PhysicsEntity):
                 break
             if key == pygame.K_w or key == pygame.K_SPACE:
                 self.jump()
-            if key == pygame.K_UP or key == pygame.K_KP8:
+            elif key == pygame.K_UP or key == pygame.K_KP8:
                 self.attack_start(Direction.UP)
-            if key == pygame.K_LEFT or key == pygame.K_KP4:
+            elif key == pygame.K_LEFT or key == pygame.K_KP4:
                 self.attack_start(Direction.LEFT)
-            if key == pygame.K_DOWN or key == pygame.K_KP5:
+            elif key == pygame.K_DOWN or key == pygame.K_KP5:
                 pass
                 # self.attack_start(Direction.DOWN)
-            if key == pygame.K_RIGHT or key == pygame.K_KP6:
+            elif key == pygame.K_RIGHT or key == pygame.K_KP6:
                 self.attack_start(Direction.RIGHT)
+            elif key == pygame.K_LSHIFT:
+                self.start_block()
 
     def update_shared_controls(self):
         if self.controls_left:
@@ -178,7 +201,7 @@ class Player(physics.PhysicsEntity):
         if not self.remote:
             network.queue_op(ops.Attack(direction))
 
-        self.controls_disabled = True
+        self.disable_controls()
 
         if direction == Direction.RIGHT:
             self.change_anim(self.attack_right_anim)
@@ -220,13 +243,14 @@ class Player(physics.PhysicsEntity):
 
     def anim_done(self):
         if 'player_attack' in self.curr_anim.name:
-            self.controls_disabled = False
+            self.enable_controls()
 
         super().anim_done()
 
     def hit(self, hit_dir:Direction = Direction.NONE):
-        self.stun(15)
-        self.damage += 5
+        if not self.blocking:
+            self.stun(15)
+            self.damage += 5
 
         self.hit_local_portion(hit_dir)
 
@@ -235,7 +259,10 @@ class Player(physics.PhysicsEntity):
             network.queue_op(ops.Hit(self.damage))
 
             hit_strength = self.damage
-            hit_strength_secondary:int = int(self.damage / 2)
+            if self.blocking:
+                hit_strength = int(hit_strength / 2)
+            hit_strength_secondary:int = int(hit_strength / 2)
+
             if hit_dir == Direction.UP:
                 self.accelerate((0, -hit_strength))
             elif hit_dir == Direction.LEFT:
@@ -260,5 +287,41 @@ class Player(physics.PhysicsEntity):
             self.can_double_jump = False
             self.jump_remaining = 5
 
+    def start_block(self):
+        self.blocking = True
+        self.disable_controls()
+        self.change_anim(self.block_anim)
+        if not self.remote:
+            network.queue_op(ops.BlockStart())
+
+    def stop_block(self):
+        self.blocking = False
+        self.enable_controls()
+        self.change_anim(self.idle_anim)
+        if not self.remote:
+            network.queue_op(ops.BlockStop())
+
+    def enable_controls(self):
+        self.controls_disabled = False
+
+    def disable_controls(self):
+        self.controls_disabled = True
+
+        self.controls_left = False
+        self.controls_right = False
+        self.controls_down = False
+        self.controls_up = False
+        while 1:
+            try:
+                inst.state.key_events.get(block=False)
+            except queue.Empty:
+                break
+        return
+
     def on_collide_down(self):
         self.can_double_jump = True
+
+    def die(self):
+        self.dead = True
+        if not self.remote:
+            network.queue_op(ops.Death())

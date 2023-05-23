@@ -76,8 +76,9 @@ class TextDisplay(Button, ABC):
     text_offset:tuple = (0,0)
     font_size = 50
     font:pygame.font
+    color:tuple[int, int, int]
 
-    def __init__(self, pos: tuple, font_size: int = 0, text_offset: tuple = ()):
+    def __init__(self, pos: tuple, font_size: int = 0, text_offset: tuple = (), color:tuple[int, int, int] = (0,0,0)):
         super().__init__(pos)
 
         self.text = ''
@@ -88,9 +89,11 @@ class TextDisplay(Button, ABC):
 
         self.font = pygame.font.Font('fonts/comic.ttf', self.font_size)
 
+        self.color = color
+
     def update(self):
         super().update()
-        self.text_surface = self.font.render(self.text, True, (0,0,0))
+        self.text_surface = self.font.render(self.text, True, self.color)
         self.curr_anim.restore_unaltered()
         self.curr_anim.sprite.blit(self.text_surface, self.text_offset)
 

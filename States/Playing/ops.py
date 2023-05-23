@@ -16,6 +16,8 @@ class Pos(Operation):
     right:bool
 
     def handle(self, parent_conn:conn.Connection):
+        if not type(inst.state) == playing.Playing:
+            return
         s:playing.Playing = inst.state
         try:
             p = s.players[parent_conn.address]
@@ -60,6 +62,8 @@ class Attack(Operation):
     direction:Direction
 
     def handle(self, parent_conn:conn.Connection):
+        if not type(inst.state) == playing.Playing:
+            return
         state:playing.Playing = inst.state
         state.players[parent_conn.address].attack_start(self.direction)
 
@@ -80,9 +84,12 @@ class Hit(Operation):
     new_damage:int
 
     def handle(self, parent_conn:conn.Connection):
+        if not type(inst.state) == playing.Playing:
+            return
         state:playing.Playing = inst.state
         p = state.players[parent_conn.address]
         p.hit()
+        p.damage = self.new_damage
 
     def __init__(self, new_damage:int):
         self.new_damage = new_damage
@@ -99,16 +106,25 @@ class BlockStart(Operation):
     length = 1
 
     def handle(self, parent_conn: conn.Connection):
-        pass
+        if not type(inst.state) == playing.Playing:
+            return
+        state: playing.Playing = inst.state
+        state.players[parent_conn.address].start_block()
 
 class BlockStop(Operation):
     length = 1
 
     def handle(self, parent_conn: conn.Connection):
-        pass
+        if not type(inst.state) == playing.Playing:
+            return
+        state: playing.Playing = inst.state
+        state.players[parent_conn.address].stop_block()
 
 class Death(Operation):
     length = 1
 
     def handle(self, parent_conn: conn.Connection):
-        pass
+        if not type(inst.state) == playing.Playing:
+            return
+        state: playing.Playing = inst.state
+        state.players[parent_conn.address].die()

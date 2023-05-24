@@ -85,16 +85,16 @@ class Animation:
             self.sprite = self.sprite_original.copy()
 
 
-    def reset(self):
-        self.frame_count = 0
-        self.curr_frame = 0
-        self.finished: bool = False
-
-        if self.alterable:
-            self.sprite_original = self.sprite_list[self.curr_frame]
-            self.sprite = self.sprite_original.copy()
-        else:
-            self.sprite = self.sprite_list[0]
-        return self
+    # def reset(self):
+    #     self.frame_count = 0
+    #     self.curr_frame = 0
+    #     self.finished: bool = False
+    #
+    #     if self.alterable:
+    #         self.sprite_original = self.sprite_list[self.curr_frame]
+    #         self.sprite = self.sprite_original.copy()
+    #     else:
+    #         self.sprite = self.sprite_list[0]
+    #     return self
 
 import pygame

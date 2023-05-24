@@ -9,14 +9,21 @@ class MainMenu(game_state.GameState):
     def __init__(self):
         super().__init__()
 
-        self.add_layer('background')
+        self.add_layer('decoration')
         self.add_layer('ui', uses_mouse=True)
 
-        self.layers['ui'].add_entity(HostButton((407, 728)))
-        self.layers['ui'].add_entity(JoinButton((991, 728)))
+        self.layers['ui'].add_entity(HostButton((407, 703)))
+        self.layers['ui'].add_entity(JoinButton((991, 703)))
 
-        self.name_input = NameInput((589, 540), active=True)
+        self.name_input = NameInput((589, 573), active=True)
         self.layers['ui'].add_entity(self.name_input)
+
+        self.layers['decoration'].add_entity(Title((95, 70)))
+        self.layers['decoration'].add_entity(Ghost((47, 40)))
+        self.layers['decoration'].add_entity(Ghost((45, 937)))
+        self.layers['decoration'].add_entity(Ghost((1770, 40)))
+        self.layers['decoration'].add_entity(Ghost((1770, 937)))
+
 
     def frame_logic(self):
         self.update_all()
@@ -46,3 +53,9 @@ class NameInput(ui_entity.TextInput):
     idle_anim = animation.Animation('name_input', alterable=True)
     hover_anim = idle_anim
     click_anim = hover_anim
+
+class Title(ui_entity.UiEntity):
+    idle_anim = animation.Animation('title')
+
+class Ghost(ui_entity.UiEntity):
+    idle_anim = animation.Animation('player_idle', frame_dur=7)

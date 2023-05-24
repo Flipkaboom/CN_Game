@@ -74,6 +74,8 @@ class Player(physics.PhysicsEntity):
                                                      color=self.color, loop=False)
         self.attack_up_anim = animation.Animation('player_attack_u', offset=(-50, -50), frame_dur=5,
                                                     color=self.color, loop=False)
+        self.attack_down_anim = animation.Animation('player_attack_d', offset=(-50, 0), frame_dur=5,
+                                                  color=self.color, loop=False)
 
 
     @classmethod
@@ -166,8 +168,7 @@ class Player(physics.PhysicsEntity):
             elif key == pygame.K_LEFT or key == pygame.K_KP4:
                 self.attack_start(Direction.LEFT)
             elif key == pygame.K_DOWN or key == pygame.K_KP5:
-                pass
-                # self.attack_start(Direction.DOWN)
+                self.attack_start(Direction.DOWN)
             elif key == pygame.K_RIGHT or key == pygame.K_KP6:
                 self.attack_start(Direction.RIGHT)
             elif key == pygame.K_LSHIFT:
@@ -218,9 +219,8 @@ class Player(physics.PhysicsEntity):
             self.change_anim(self.attack_up_anim)
             self.attack_countdown = 10
         elif direction == Direction.DOWN:
-            raise Exception("attack down doesn't exist")
-            # self.change_anim(self.attack_right_anim)
-            # self.attack_countdown = 7
+            self.change_anim(self.attack_down_anim)
+            self.attack_countdown = 10
         self.attack_dir = direction
 
     def attack(self, attack_dir:Direction):
@@ -228,10 +228,14 @@ class Player(physics.PhysicsEntity):
             return
         elif attack_dir == Direction.RIGHT:
             attack_bbox = pygame.Rect((self.bbox.x + 70, self.bbox.y - 50), (80, 150))
+            self.accelerate((30, 0), max_x=30)
         elif attack_dir == Direction.LEFT:
             attack_bbox = pygame.Rect((self.bbox.x - 50, self.bbox.y - 50), (80, 150))
+            self.accelerate((-30, 0), max_x=30)
         elif attack_dir == Direction.UP:
             attack_bbox = pygame.Rect((self.bbox.x - 35, self.bbox.y - 50), (170, 80))
+        elif attack_dir == Direction.DOWN:
+            attack_bbox = pygame.Rect((self.bbox.x - 35, self.bbox.y + 70), (170, 80))
         else:
             return
 
@@ -239,12 +243,6 @@ class Player(physics.PhysicsEntity):
         if self.remote:
             if attack_bbox.colliderect(state.player_me.bbox):
                 state.player_me.hit(attack_dir)
-        # else:
-        #     #dead-reckoning but it has too many issues because of getting stunned
-        #     for e in state.players.values():
-        #         if attack_bbox.colliderect(e.bbox):
-        #             # e:Player = e
-        #             e.hit(attack_dir)
 
     def anim_done(self):
         if 'player_attack' in self.curr_anim.name:
@@ -333,17 +331,17 @@ class Player(physics.PhysicsEntity):
 
         if delta_pos[0] >= 0:
             speed_x = min(delta_pos[0], speed_limit)
-            speed_x = max(speed_x, self.speed[0])
+            speed_x = max(speed_x, min(self.speed[0], delta_pos[0]))
         else:
             speed_x = max(delta_pos[0], -speed_limit)
-            speed_x = min(speed_x, self.speed[0])
+            speed_x = min(speed_x, max(self.speed[0], delta_pos[0]))
 
         if delta_pos[1] >= 0:
             speed_y = min(delta_pos[1], speed_limit)
-            speed_y = max(speed_y, self.speed[1])
+            speed_y = max(speed_y, min(self.speed[1], delta_pos[1]))
         else:
             speed_y = max(delta_pos[1], -speed_limit)
-            speed_y = min(speed_y, self.speed[1])
+            speed_y = min(speed_y, max(self.speed[1], delta_pos[1]))
 
         new_pos = (self.bbox.x + speed_x, self.bbox.y + speed_y)
         self.set_pos(new_pos)

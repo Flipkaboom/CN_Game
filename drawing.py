@@ -19,7 +19,7 @@ class Renderer:
     screen_size = (0, 0)
 
     def __init__(self):
-        self.screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
+        self.screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE)
         self.canvas = pygame.Surface(CANVAS_SIZE)
         self.update_screen_size()
 

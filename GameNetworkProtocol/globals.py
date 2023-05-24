@@ -4,7 +4,7 @@ import threading
 
 from . import connection as conn
 
-MAX_PACKET_SIZE = 512
+MAX_PACKET_SIZE = 512 #If this goes down implement the separate pos
 
 sock:socket.socket
 

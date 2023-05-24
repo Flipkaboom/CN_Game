@@ -16,7 +16,7 @@ import threading
 
 SEQ_INFO_LEN = 5
 CONN_TIMEOUT = 5
-RESEND_TIMEOUT = 0.033333333
+RESEND_TIMEOUT = 0.1 #FIXME
 
 
 # noinspection PyRedeclaration
@@ -183,7 +183,8 @@ class Connection:
         if data is None:
             # noinspection PyTypeChecker
             self.data_recv_queue.put(data)
-        elif crc.valid_crc(data):
+        # elif crc.valid_crc(data):
+        else:
             self.data_recv_queue.put(crc.remove_crc(data))
 
     def close(self):

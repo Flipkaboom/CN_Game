@@ -44,6 +44,7 @@ class Player(physics.PhysicsEntity):
     #num of frames to skip before attacking
     attack_countdown:int = 0
 
+    target_pos:tuple[int,int] = None
     received_network:bool = False
 
     def __init__(self, pos:tuple[int, int], name:str, color:tuple[int, int, int], remote:bool = True):
@@ -85,6 +86,7 @@ class Player(physics.PhysicsEntity):
 
         if self.remote:
             #remote update
+            self.move_to_target_smooth()
             self.update_remote()
         else:
             #local update
@@ -99,7 +101,7 @@ class Player(physics.PhysicsEntity):
         #dead reckoning
         if not self.received_network:
             if self.remote:
-                print('Performed dead reckoning on ', self.name)
+                print('Predicted movement of ', self.name)
             self.update_shared_controls()
 
         #shared update
@@ -121,8 +123,11 @@ class Player(physics.PhysicsEntity):
         if self.attack_countdown > 0:
             self.attack_countdown -= 1
 
-        #update physics
-        super().update()
+        if not self.received_network:
+            #update physics
+            super().update()
+        else:
+            self.update_animation()
 
         self.name_tag.set_pos((self.bbox.x - 25, self.bbox.bottom + 10))
 
@@ -318,10 +323,44 @@ class Player(physics.PhysicsEntity):
                 break
         return
 
+    def move_to_target_smooth(self):
+        if not self.target_pos:
+            return
+
+        pos = self.target_pos
+        delta_pos = (pos[0] - self.bbox.x, pos[1] - self.bbox.y)
+        speed_limit = 100
+
+        if delta_pos[0] >= 0:
+            speed_x = min(delta_pos[0], speed_limit)
+            speed_x = max(speed_x, self.speed[0])
+        else:
+            speed_x = max(delta_pos[0], -speed_limit)
+            speed_x = min(speed_x, self.speed[0])
+
+        if delta_pos[1] >= 0:
+            speed_y = min(delta_pos[1], speed_limit)
+            speed_y = max(speed_y, self.speed[1])
+        else:
+            speed_y = max(delta_pos[1], -speed_limit)
+            speed_y = min(speed_y, self.speed[1])
+
+        new_pos = (self.bbox.x + speed_x, self.bbox.y + speed_y)
+        self.set_pos(new_pos)
+        if new_pos == self.target_pos:
+            self.target_pos = None
+        else:
+            print('Interpolated movement of ', self.name)
+
     def on_collide_down(self):
         self.can_double_jump = True
 
+    def on_collide_up(self):
+        self.jump_remaining = 0
+
     def die(self):
+        self.set_pos((0, 1100))
+        self.name_tag.set_pos((0, 1100))
         self.dead = True
         if not self.remote:
             network.queue_op(ops.Death())

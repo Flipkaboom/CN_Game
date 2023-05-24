@@ -26,6 +26,9 @@ class GameState(ABC):
     uses_key_events:bool = False
     key_events:queue.Queue[pygame.event.Event]
 
+    background_color:tuple[int, int, int] = (255, 192, 203)
+    border_color:tuple[int, int, int] = (0, 0, 0)
+
     def __init__(self):
         super().__init__()
         self.layers = OrderedDict[str, Layer]()

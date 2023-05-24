@@ -13,5 +13,5 @@ def handle_pygame_events():
             inst.renderer.update_screen_size()
 
         if e.type in [pygame.MOUSEMOTION, pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN,
-                      pygame.TEXTINPUT, pygame.KEYDOWN]:
+                      pygame.TEXTINPUT, pygame.KEYDOWN, pygame.KEYUP]:
             user_input.handle_event(e)

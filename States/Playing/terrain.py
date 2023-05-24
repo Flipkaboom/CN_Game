@@ -5,3 +5,18 @@ class LargePlatform(entity.Entity):
 
 class SmallPlatform(entity.Entity):
     idle_anim = animation.Animation('playing_small_platform')
+
+class Clouds(entity.Entity):
+    idle_anim = animation.Animation('playing_clouds')
+
+class CloudRight(entity.Entity):
+    idle_anim = animation.Animation('cloud_right')
+
+class CloudLeft(entity.Entity):
+    idle_anim = animation.Animation('cloud_left')
+
+class CloudUp(entity.Entity):
+    idle_anim = animation.Animation('cloud_up')
+
+class CloudDown(entity.Entity):
+    idle_anim = animation.Animation('cloud_down')

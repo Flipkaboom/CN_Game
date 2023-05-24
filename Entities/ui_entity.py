@@ -107,8 +107,7 @@ class TextInput(TextDisplay):
 
         self.active = active
         if active:
-            #FIXME before release
-            user_input.text_input = 'red'
+            user_input.text_input = ''
 
     def update(self):
         if self.active and not self.disabled:

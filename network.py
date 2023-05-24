@@ -11,17 +11,12 @@ def init():
     global address, initialized
     _, port = Gnp.initialize(inst.name)
 
-    # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # s.connect(('8.8.8.8', 80)) #FIXME make right port num?
-    # address = (s.getsockname()[0], port)
-
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
     try:
-        s.connect(('8.8.8.8', port))  # FIXME make right port num? and also it breaks when no internet 10.254.254.254
+        s.connect(('8.8.8.8', port))
         address = (s.getsockname()[0], port)
     except Exception:
-        #TODO add another try for local ip?
         address = ('127.0.0.1', port)
     finally:
         s.close()
@@ -43,3 +38,14 @@ def active_conns() -> list[Gnp.conn.Connection]:
                 res.append(c)
     return res
 
+def get_incoming_drop_chance() -> int:
+    return Gnp.gl.incoming_drop_chance
+
+def get_outgoing_drop_chance() -> int:
+    return Gnp.gl.outgoing_drop_chance
+
+def set_incoming_drop_chance(chance:int):
+    Gnp.gl.incoming_drop_chance = chance
+
+def set_outgoing_drop_chance(chance:int):
+    Gnp.gl.outgoing_drop_chance = chance

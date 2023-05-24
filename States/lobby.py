@@ -9,7 +9,8 @@ from States.Playing import playing, player
 import instance as inst
 
 class Lobby(game_state.GameState):
-    def __init__(self, existing_conns:list[tuple[str, int]] = None):
+    def __init__(self, existing_conns:list[tuple[str, int]] = None, win:bool = False, lost:bool = False,
+                 color:tuple[int, int, int] = (255, 255, 255)):
         super().__init__()
 
         self.players:dict[tuple[str, int], player.Player] = dict[tuple[str, int], player.Player]()
@@ -18,7 +19,12 @@ class Lobby(game_state.GameState):
         self.add_layer('ui', uses_mouse=True)
         self.add_layer('players')
 
-        self.layers['ui'].add_entity(Header((36,0)))
+        header = Header((36,0))
+        self.layers['ui'].add_entity(header)
+        if win:
+            header.change_anim(header.win_anim)
+        elif lost:
+            header.change_anim(header.lose_anim)
 
         self.ready = False
         self.layers['ui'].add_entity(ReadyButton((1538, 829)))
@@ -27,6 +33,9 @@ class Lobby(game_state.GameState):
         self.layers['ui'].add_entity(self.color_input)
         self.color_preview = ColorPreview((1160, 836))
         self.layers['ui'].add_entity(self.color_preview)
+        self.color_preview.rgb = color
+        self.color_preview.change_anim(animation.Animation('lobby_preview', color=color))
+        self.color_preview.valid_color = True
 
         x = 400
         y = 18
@@ -112,6 +121,8 @@ class Lobby(game_state.GameState):
 
 class Header(ui_entity.UiEntity):
     idle_anim = animation.Animation('lobby_header')
+    win_anim = animation.Animation('lobby_header_win')
+    lose_anim = animation.Animation('lobby_header_lose')
 
 class ReadyButton(ui_entity.Button):
     idle_anim = animation.Animation('lobby_ready')
@@ -128,6 +139,7 @@ class ReadyButton(ui_entity.Button):
                 self.locked = True
                 self.idle_anim = self.locked_anim
                 self.hover_anim = self.locked_anim
+                self.click_anim = self.locked_anim
                 self.change_anim(self.locked_anim)
                 inst.state.color_input.disabled = True
                 inst.state.ready = True

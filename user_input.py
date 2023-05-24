@@ -1,6 +1,7 @@
 import pygame
 
 import instance as inst
+import network
 
 text_input = str()
 
@@ -33,10 +34,40 @@ def handle_event(e:pygame.event.Event):
         text_input += e.text
 
     if e.type == pygame.KEYDOWN:
-        if e.key == pygame.K_BACKSPACE:
+        if e.key == pygame.K_ESCAPE:
+            inst.screen_closed = True
+        elif e.key == pygame.K_BACKSPACE:
             text_input = text_input[:-1]
-        if e.key == pygame.K_F11:
-            pygame.display.toggle_fullscreen()
+        elif e.key == pygame.K_EQUALS:
+            tmp = network.get_incoming_drop_chance() + 5
+            if tmp <= 100:
+                print('Set incoming drop chance to ', tmp)
+                network.set_incoming_drop_chance(tmp)
+        elif e.key == pygame.K_MINUS:
+            tmp = network.get_incoming_drop_chance() - 5
+            if tmp >= 0:
+                print('Set incoming drop chance to ', tmp)
+                network.set_incoming_drop_chance(tmp)
+        elif e.key == pygame.K_RIGHTBRACKET:
+            tmp = network.get_outgoing_drop_chance() + 5
+            if tmp <= 100:
+                print('Set outgoing drop chance to ', tmp)
+                network.set_outgoing_drop_chance(tmp)
+        elif e.key == pygame.K_LEFTBRACKET:
+            tmp = network.get_outgoing_drop_chance() - 5
+            if tmp >= 0:
+                print('Set outgoing drop chance to ', tmp)
+                network.set_outgoing_drop_chance(tmp)
+        elif e.key == pygame.K_p:
+            network.set_outgoing_drop_chance(100)
+            network.set_incoming_drop_chance(100)
+            print('Dropping all incoming and outgoing packets')
 
         if inst.state.uses_key_events:
             inst.state.key_events.put(e)
+
+    if e.type == pygame.KEYUP:
+        if e.key == pygame.K_p:
+            network.set_outgoing_drop_chance(0)
+            network.set_incoming_drop_chance(0)
+            print('Restored drop chances to 0')

@@ -114,10 +114,11 @@ class PhysicsEntity(entity.Entity):
                                               inv_vect_clip[1][1] - inv_vect_clip[0][1])
                         new_bbox = new_bbox.move(backwards_movement)
 
-                        if new_bbox.colliderect(e.bbox):
-                            print(vect, inv_vect, inv_vect_clip, backwards_movement, e.bbox.x, new_bbox.right)
-                            print(vect, inv_vect, inv_vect_clip, backwards_movement, e.bbox.y, new_bbox.bottom)
-                            raise Exception('Box still colliding after moving along inverted vector')
+                        # if new_bbox.colliderect(e.bbox):
+                        #     print(type(e))
+                        #     print(vect, inv_vect, inv_vect_clip, backwards_movement, e.bbox.x, new_bbox.right)
+                        #     print(vect, inv_vect, inv_vect_clip, backwards_movement, e.bbox.y, new_bbox.bottom)
+                        #     raise Exception('Box still colliding after moving along inverted vector')
 
                         if inv_vect_clip[1][0] == e.bbox.x - 1:
                             remaining_vect = (0, self.speed[1])
@@ -140,7 +141,8 @@ class PhysicsEntity(entity.Entity):
                                 self.colliding_up = True
                                 self.on_collide_up()
                         else:
-                            raise Exception('Inverted vector clip with collision box did not line up with any bbox edge')
+                            remaining_vect = (0,0)
+                        #     raise Exception('Inverted vector clip with collision box did not line up with any bbox edge')
 
                         return self.move_collision_recursive(remaining_vect, new_bbox)
 

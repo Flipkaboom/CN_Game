@@ -29,7 +29,6 @@ class Entity(ABC):
             self.anim_done()
 
     def anim_done(self):
-        #FIXME anim_done method on animation?
         self.change_anim(self.idle_anim)
 
     def change_anim(self, anim:animation.Animation):

@@ -24,8 +24,8 @@ class Renderer:
         self.update_screen_size()
 
     def render_canvas(self):
-        self.screen.fill('black')
-        self.canvas.fill('pink')
+        self.screen.fill(inst.state.border_color)
+        self.canvas.fill(inst.state.background_color)
 
         self.draw_all_entities()
 

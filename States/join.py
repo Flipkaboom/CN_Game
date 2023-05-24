@@ -13,9 +13,8 @@ class Join(game_state.GameState):
 
         self.layers['ui'].add_entity(Header((0, 58)))
 
-        #FIXME before release
-        self.ip_input = IpInput((165, 434))#, active=True)
-        self.port_input = PortInput((1182, 431))
+        self.ip_input = IpInput((165, 434))
+        self.port_input = PortInput((1182, 431), active=True)
         self.layers['ui'].add_entity(self.ip_input)
         self.layers['ui'].add_entity(self.port_input)
 

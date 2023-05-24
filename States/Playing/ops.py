@@ -15,10 +15,10 @@ class Pos(Operation):
     down:bool
     right:bool
 
-    def handle(self, parent_conn:conn.Connection):
+    def handle(self, parent_conn: conn.Connection):
         if not type(inst.state) == playing.Playing:
             return
-        s:playing.Playing = inst.state
+        s: playing.Playing = inst.state
         try:
             p = s.players[parent_conn.address]
         except KeyError:
@@ -27,13 +27,13 @@ class Pos(Operation):
 
         # print('Received pos ', self.pos)
 
-        p.set_pos(self.pos)
         p.speed = self.speed
         p.controls_up = self.up
         p.controls_left = self.left
         p.controls_down = self.down
         p.controls_right = self.right
         p.received_network = True
+        p.target_pos = self.pos
 
 
 
@@ -95,7 +95,7 @@ class Hit(Operation):
         self.new_damage = new_damage
 
     def encode(self):
-        return self._encode_values((self.new_damage,))
+        return self._encode_values(ints=(self.new_damage,))
 
     @classmethod
     def from_data(cls, data:bytes):

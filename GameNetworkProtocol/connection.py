@@ -159,7 +159,10 @@ class Connection:
         if self.send_until <= self.seq_num:
             return
         try:
-            gl.sock.sendto(crc.add_crc(self.new_outgoing()), self.address)
+            if not hlp.random_drop_outgoing():
+                gl.sock.sendto(crc.add_crc(self.new_outgoing()), self.address)
+            else:
+                print('Randomly dropped outgoing data packet')
         except socket.error:
             self.close()
             return
@@ -167,23 +170,25 @@ class Connection:
 
     def send_new_ack(self):
         try:
-            gl.sock.sendto(crc.add_crc(self.new_outgoing_ack()), self.address)
+            if not hlp.random_drop_outgoing():
+                gl.sock.sendto(crc.add_crc(self.new_outgoing_ack()), self.address)
+            else:
+                print('Randomly dropped outgoing ack')
         except socket.error:
             self.close()
             return
 
+    #has to have valid crc
     def recv_packet(self, data):
         if data is None:
             # noinspection PyTypeChecker
             self.data_recv_queue.put(data)
-        #FIXME double crc check
         elif crc.valid_crc(data):
             self.data_recv_queue.put(crc.remove_crc(data))
 
     def close(self):
         self.closed = True
         print('Closing connection with: ', self.address)
-        #FIXME clear queue first? otherwise all previous ops will be handled before thread closes :(
         self.recv_packet(None)
         gl.events.append(('DISCONNECT', self.address))
         try:

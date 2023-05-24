@@ -62,7 +62,6 @@ class PlayerInfo(Operation):
         if self.ip == '0.0.0.0':
             conn_info = parent_conn.address
         elif self.ip == '127.0.0.1':
-        #FIXME if ip == '127.0.0.1' replace ip with peer source ip to connect to multiple clients on same machine
             conn_info = (parent_conn.address[0], self.port)
         else:
             conn_info = (self.ip, self.port)
@@ -98,8 +97,6 @@ class PlayerInfo(Operation):
     def __init__(self, ip:str, port:int, conn_id:int, name:str):
         self.ip = ip
         self.port = port
-        #FIXME with dynamic port I don't think this does anything, reconnections will already come from a different port
-        #           (assuming it doesn't reuse ports (it shouldn't if I don't tell it to))
         self.conn_id = conn_id
         self.name = name
         self.length = 1 + 4 + 4 + 4 + 4 + len(name)

@@ -4,7 +4,7 @@ import threading
 
 from . import connection as conn
 
-MAX_PACKET_SIZE = 2048
+MAX_PACKET_SIZE = 512
 
 sock:socket.socket
 
@@ -21,3 +21,6 @@ conn_lock:threading.Lock = threading.Lock()
 connections:dict[tuple, conn.Connection] = dict[tuple, conn.Connection]()
 
 events:list[tuple[str, object]] = list[tuple[str, object]]()
+
+incoming_drop_chance:int = 0
+outgoing_drop_chance:int = 0
